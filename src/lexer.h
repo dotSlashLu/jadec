@@ -6,22 +6,22 @@ typedef struct tok {
         void *data;
 } tok_t, *tokp;
 
+
+typedef struct domnode_prop {
+        char *prop;
+        char *val;
+} prop_t, *propp;
+
 typedef struct domnode {
         int depth;
         char *text;
+        propp *proplist;
         struct domnode *parent;
-} domnode_t, *domnodep
+} domnode_t, *domnodep;
 
 enum {
-        tok_doctype = 256,
-        tok_node,
-        tok_text,
-        tok_code,
-        tok_level,
-        tok_include,
-        tok_comment,
-        tok_mixin,
-        tok_case
+        tok_id = 256,
+        tok_level
 };
 
 void tok_free(tokp tok);
