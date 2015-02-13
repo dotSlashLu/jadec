@@ -8,9 +8,7 @@
 
 static char *buf0 = NULL, *buf1 = NULL;
 static char *cur = NULL, *forward = NULL;
-static int line = 0;
 static FILE *in;
-static int depth = 0;
 
 static long _loadbuf(FILE *in, char *curbuf);
 static char _advance();
@@ -54,32 +52,18 @@ tokp gettok(FILE *in)
         if (isalnum(*forward)) {
                 while (isalnum(_advance()));
                 *forward = '\0';
-                char *idstr = malloc(sizeof(char) * (strlen(cur) + 1);
-                strcpy(word, cur);
+                char *idstr = malloc(sizeof(char) * (strlen(cur) + 1));
+                strcpy(idstr, cur);
 
                 // skip trailing spaces
                 while (*forward == '\t' || *forward == ' ') { _advance(); }
 
                 tok->type = tok_id;
-                tok->data = word;
-                return tok;
-
-                /*
-                // id
-                if (*forward == '(') {
-                        domnodep node = calloc(1, sizeof(domnode_t));
-                        node->depth = depth;
-                        tok->data = node;
-                        tok->proplist = malloc(1, sizeof(propp));
-                        prop_list();
-                        cur = forward;
-                        return tok;
-                }
-                */
+                tok->data = idstr;
         }
 
         // level
-        else if (*forward = '\n') {
+        else if (*forward == '\n') {
                 int *i = malloc(sizeof(int));
                 *i = 0;
                 while (_advance() == '\t' || *forward == ' ')
@@ -87,29 +71,13 @@ tokp gettok(FILE *in)
                 tok->type = tok_level;
                 tok->data = i;
         }
+
+        else
+                tok->type = *forward;
+
+        return tok;
 }
 
-/*
-static void prop_list()
-{
-        propp prop = calloc(1, sizeof(prop_t));
-        char *name = malloc(MAX_PROP_LEN);
-        int i = 0;
-
-        while (is_alnum(_advance())) {
-                name[i++] = *forward;
-                if (i == MAX_PROP_LEN)
-                        ; // TODO: error: prop name too long
-        }
-
-        while (isspace(*forward)) _advance();
-
-        if (*forward == '=') {
-                char *val = malloc(MAX_PROP_VAL_LEN);
-
-        }
-}
-*/
 
 // two-buffer lookahead
 static long _loadbuf(FILE *in, char *curbuf)
