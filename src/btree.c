@@ -4,7 +4,6 @@
 
 #include "btree.h"
 
-static unsigned long _hash(char *str);
 static nodeptr _setup_node(char *key, void *val, unsigned long hash);
 
 nodeptr bt_init()
@@ -16,7 +15,7 @@ nodeptr bt_init()
 
 nodeptr bt_install(nodeptr n, char *key, void *val)
 {
-        unsigned long hash = _hash(key);
+        unsigned long hash = bt_hash(key);
         while (n != NULL) {
                 if (n->hash == hash && n->key == key) {
                         n->val = val;
@@ -57,7 +56,7 @@ static nodeptr _setup_node(char *key, void *val, unsigned long hash)
 
 nodeptr bt_find(nodeptr n, char *key)
 {
-        unsigned long hash = _hash(key);
+        unsigned long hash = bt_hash(key);
         while (n != NULL) {
                 if (n->hash == hash) return n;
 
@@ -76,7 +75,7 @@ void bt_free(nodeptr n)
         free(n);
 }
 
-static unsigned long _hash(char *str)
+unsigned long bt_hash(char *str)
 {
         unsigned long hash = 5381;
         int c;

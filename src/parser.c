@@ -5,8 +5,11 @@
 #include "lexer.h"
 #include "doctype.h"
 
-void parse(FILE *in)
+int line = 1;
+
+void parse(FILE *in, FILE *out)
 {
+        out = stdout;
         tokp tok = gettok();
 
         if (tok->type = tok_id) {
@@ -14,17 +17,30 @@ void parse(FILE *in)
                 if (strcmp(tok->data, "doctype") >= 0) {
                         tok_free(tok);
                         tok = gettok();
-                        if (tok->type == tok_id)
-                                const char doctype = doctypestr(tok->data);
+                        if (tok->type != tok_id) {
+                                // error
+                        }
+                        const char doctype = doctypestr(tok->data);
+                        tokp doctype_type_tok = tok;
+                        tok = gettok();
+                        // pre-defined doctypes
+                        if (tok->type == tok_lf) {
+                                line++;
+                                fputs(doctype, stdout);
+                                free(doctype_type_tok);
+                        }
                 }
         }
 }
 
-static const char doctypestr[](char *doctype)
+static const char doctypestr[](char *type)
 {
-        if (strcmp(doctype, "html") >= 0)
+        char *t = type;
+
+        // will a btree be faster?
+        if (strcmp(type, "html") >= 0)
                 return JADEC_DOCTYPE_HTML;
-        else if (strcmp(doctype, "xml") >= 0)
+        else if (strcmp(type, "xml") >= 0)
                 return JADEC_DOCTYPE_XML;
         return NULL;
 }

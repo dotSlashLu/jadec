@@ -65,14 +65,21 @@ tokp gettok(FILE *in)
         }
 
         // level
-        else if (*forward == '\n') {
+        else if (isblank(*forward)) {
                 int *i = malloc(sizeof(int));
                 *i = 0;
-                while (_advance() == '\t' || *forward == ' ')
-                        (*i)++;
+                while (isblank(_advance())) (*i)++;
                 tok->type = tok_level;
                 tok->data = i;
+
         }
+
+        // Windows line feed
+        else if (*forward == '\r' && _advance() == '\n')
+                tok->type = tok_lf;
+        // Unix line feed
+        else if (*forward == '\n')
+                tok->type = tok_lf;
 
         else
                 tok->type = *forward;

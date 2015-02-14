@@ -1,5 +1,5 @@
-#ifndef DS_BTREE_H
-#define DS_BTREE_H
+#ifndef JADEC_BTREE_H
+#define JADEC_BTREE_H
 
 typedef struct node {
         struct node *L;
@@ -13,5 +13,6 @@ nodeptr bt_init();
 nodeptr bt_install(nodeptr root, char *key, void *val);
 nodeptr bt_find(nodeptr from, char *key);
 void    bt_free(nodeptr root);
+unsigned long bt_hash(char *str);
 
 #endif

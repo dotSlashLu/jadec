@@ -21,6 +21,8 @@ typedef struct domnode {
 
 enum {
         tok_id = 256,
+        // \r?\n
+        tok_lf,
         tok_level
 };
 
