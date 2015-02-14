@@ -50,13 +50,15 @@ tokp gettok(FILE *in)
 
         // id
         if (isalnum(*forward)) {
-                while (isalnum(_advance()));
+                while (isalnum(forward++));
                 *forward = '\0';
                 char *idstr = malloc(sizeof(char) * (strlen(cur) + 1));
                 strcpy(idstr, cur);
 
                 // skip trailing spaces
-                while (*forward == '\t' || *forward == ' ') { _advance(); }
+                while (*forward == '\t' || *forward == ' ') {
+                        forward++;
+                }
 
                 tok->type = tok_id;
                 tok->data = idstr;
@@ -77,7 +79,6 @@ tokp gettok(FILE *in)
 
         return tok;
 }
-
 
 // two-buffer lookahead
 static long _loadbuf(FILE *in, char *curbuf)

@@ -1,11 +1,32 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "jadec.h"
 #include "lexer.h"
+#include "doctype.h"
 
 void parse(FILE *in)
 {
-        tokp tok;
+        tokp tok = gettok();
+
+        if (tok->type = tok_id) {
+                // doctype
+                if (strcmp(tok->data, "doctype") >= 0) {
+                        tok_free(tok);
+                        tok = gettok();
+                        if (tok->type == tok_id)
+                                const char doctype = doctypestr(tok->data);
+                }
+        }
+}
+
+static const char doctypestr[](char *doctype)
+{
+        if (strcmp(doctype, "html") >= 0)
+                return JADEC_DOCTYPE_HTML;
+        else if (strcmp(doctype, "xml") >= 0)
+                return JADEC_DOCTYPE_XML;
+        return NULL;
 }
 
 /*
