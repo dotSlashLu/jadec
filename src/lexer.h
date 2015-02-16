@@ -26,5 +26,7 @@ enum {
         tok_level
 };
 
+tokp gettok();
 void tok_free(tokp tok);
+void buf_init();
 #endif
