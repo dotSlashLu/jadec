@@ -16,7 +16,6 @@ void parse(FILE *input, FILE *output);
 int main(int argc, char **argv)
 {
         in = fopen(*++argv, "r");
-        printf("file: %p\n", in);
         if (in == NULL) {
                 perror("fopen: ");
                 exit(1);
@@ -33,10 +32,15 @@ void parse(FILE *input, FILE *output)
         out = stdout;
         tok = gettok();
 
-        if (tok->type = tok_id) {
+        if (tok->type == tok_id) {
                 // doctype
                 if (strcmp(tok->data, "doctype") >= 0)
                         node_doctype();
+        }
+
+        else if (tok->type == tok_eof) {
+                fputs("parser eof\n", stdout);
+                exit(0);
         }
 }
 
@@ -46,11 +50,11 @@ static void node_doctype()
 
         tok_free(tok);
         tok = gettok();
-        printf("got tok: %p, type: %d, data: %s\n", tok, tok->type, tok->data);
+        printf("got tok: %p, type: %d, data: %s\n", tok, tok->type, (char *)tok->data);
         // default doctype html
         if (tok->type == tok_lf) {
                 strcpy(doctype, doctypestr("html"));
-                fprintf(out, "%s\n", doctype);
+                // fprintf(out, "%s\n", doctype);
                 free(doctype);
                 tok_free(tok);
         }
@@ -60,7 +64,7 @@ static void node_doctype()
         tokp doctype_type_tok = tok;
         tok = gettok();
         // pre-defined doctypes
-        if (tok->type == tok_lf) {
+        if (tok->type == tok_lf || tok->type == tok_eof) {
                 line++;
                 fputs(doctype, stdout);
                 free(doctype_type_tok);
@@ -68,19 +72,21 @@ static void node_doctype()
         }
         // custom doctypes
         else {
-                fprintf(out, "<!DOCTYPE %s", doctype_type_tok->data);
+                fprintf(out, "<!DOCTYPE %s ", (char *)doctype_type_tok->data);
                 tok_free(doctype_type_tok);
-                while ((tok = gettok()) && tok->type != tok_lf) {
-                        fprintf(out, " %s", tok->data);
+                while ((tok = gettok()) && tok->type != tok_lf && tok->type != tok_eof) {
+                        if (tok->type == tok_id) fprintf(out, "%s ", (char *)tok->data);
+                        else fprintf(out, "%c", (char)tok->type);
                         tok_free(tok);
                 }
+                printf("type: %d\n", tok->type);
                 fprintf(out, ">");
                 tok_free(tok);
         }
 }
 static const char *doctypestr(char *type)
 {
-        char *t = type;
+        // char *t = type;
 
         // will a btree be faster?
         if (strcmp(type, "html") >= 0)

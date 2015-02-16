@@ -23,7 +23,8 @@ enum {
         tok_id = 256,
         // \r?\n
         tok_lf,
-        tok_level
+        tok_level,
+        tok_eof
 };
 
 tokp gettok();

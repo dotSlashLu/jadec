@@ -34,9 +34,11 @@ static char _advance()
 
                 else {
                         // eof, cleanup
-                        fputs("eof", stdout);
+                        fputs("eof\n", stdout);
+                        *cur = *forward = EOF;
                 }
         }
+        // printf("advance: %c\n", *forward);
 
         return *forward;
 }
@@ -60,14 +62,16 @@ tokp gettok()
 
         // id
         if (isalnum(*forward)) {
-                while (isalnum(*forward++)){printf("%c\t", *forward);};
-                *forward = '\0';
-                char *idstr = malloc(sizeof(char) * (strlen(cur) + 1));
-                strcpy(idstr, cur);
-                printf("idstr: %s\n", idstr);
+                while (isalnum(*forward++));
+                int idlen = forward - cur;
+                char *idstr = malloc(sizeof(char) * idlen);
+                strncpy(idstr, cur, idlen - 1);
+                *(idstr + idlen) = '\0';
+                cur = forward;
+                // printf("idstr: %s\n", idstr);
 
                 // skip trailing spaces
-                while (*forward == '\t' || *forward == ' ')
+                while (isblank(*forward))
                         _advance();
 
                 tok->type = tok_id;
@@ -81,7 +85,6 @@ tokp gettok()
                 while (isblank(_advance())) (*i)++;
                 tok->type = tok_level;
                 tok->data = i;
-
         }
 
         // Windows line feed
@@ -90,6 +93,12 @@ tokp gettok()
         // Unix line feed
         else if (*forward == '\n')
                 tok->type = tok_lf;
+
+        // eof
+        else if (*forward == EOF) {
+                tok->type = tok_eof;
+                // printf("lexer eof\n");
+        }
 
         else
                 tok->type = *forward;
