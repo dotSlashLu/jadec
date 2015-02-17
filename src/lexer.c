@@ -37,7 +37,6 @@ static char _advance()
                         *cur = *forward = EOF;
                 }
         }
-        // printf("advance: %c\n", *forward);
 
         return *forward;
 }
@@ -53,7 +52,6 @@ void buf_init(FILE *input)
 
 tokp gettok()
 {
-        fputs("\n\n---gettok---\n\n", stdout);
         tokp tok = calloc(1, sizeof(tok_t));
 
         // id
@@ -96,8 +94,6 @@ tokp gettok()
         // eof
         else if (*forward == EOF) {
                 tok->type = tok_eof;
-                _advance();
-                printf("lexer eof\n");
         }
 
         else {
@@ -106,7 +102,6 @@ tokp gettok()
                 _advance();
         }
 
-        printf("\ngot type: %d\n", tok->type);
         return tok;
 }
 
@@ -120,7 +115,6 @@ static long _loadbuf(char *curbuf)
         readlen = fread(curbuf, 1, JADEC_BUF_LEN - 1, _in);
         // eof
         if (!readlen && feof(_in)) {
-                printf("wtf, %ld\n", readlen);
                 return -1;
         }
         *(curbuf + readlen) = -1;
@@ -132,4 +126,5 @@ void tok_free(tokp tok)
         if (!tok) return;
         free(tok->data);
         free(tok);
+        tok = NULL;
 }

@@ -23,15 +23,18 @@ int main(int argc, char **argv)
 
         // init lexer buffer
         buf_init(in);
-        while(1) parse(in, stdout);
+        while(1) {
+                parse(in, stdout);
+                if (!tok || tok->type == tok_eof) break;
+                // printf("%d\n", tok->type);
+        }
 }
 
 void parse(FILE *input, FILE *output)
 {
         in = input;
         out = stdout;
-        fputs("\t33\t",stdout);
-        tok = gettok();
+        if (!tok) tok = gettok();
 
         if (tok->type == tok_id) {
                 // doctype
@@ -46,57 +49,58 @@ void parse(FILE *input, FILE *output)
 
 static void node_doctype()
 {
-        char *doctype = malloc(sizeof(char) * 110);
-
         tok_free(tok);
-        fputs("\t52\t",stdout);
         tok = gettok();
         tokp doctype_type_tok = tok;
-        fputs("\t55\t",stdout);
-        tok = gettok();
-        // default doctype html
-        if (tok->type == tok_lf || tok->type == tok_eof) {
-                strcpy(doctype, doctypestr("html"));
-                // fprintf(out, "%s\n", doctype);
-                free(doctype);
-                tok_free(tok);
-        }
-        else
-                strcpy(doctype, doctypestr(tok->data));
 
-        printf("64: %d\n", tok->type);
-        // pre-defined doctypes
-        if (tok->type == tok_lf || tok->type == tok_eof) {
-                printf("f\n");
-                line++;
-                fputs(doctype, stdout);
-                free(doctype_type_tok);
-                tok_free(tok);
+        // no type: doctype$
+        if (doctype_type_tok->type == tok_lf ||
+        doctype_type_tok->type == tok_eof) {
+                fprintf(out, "%s\n", doctypestr("html"));
+                tok_free(doctype_type_tok);
+                return;
         }
-        // custom doctypes
-        else {
-                fprintf(out, "<!DOCTYPE %s ", (char *)doctype_type_tok->data);
+
+        tok = gettok();
+        if (tok->type != tok_lf && tok->type != tok_eof) {
+                fprintf(out, "<!DOCTYPE %s", (char *)doctype_type_tok->data);
                 tok_free(doctype_type_tok);
                 do {
-                        printf("76 type: %d\n", tok->type);
-                        if (tok->type == tok_id) fprintf(out, "%s ", (char *)tok->data);
-                        else if (tok->type == tok_lf || tok->type == tok_eof) break;
-                        else fprintf(out, "%c", (char)tok->type);
+                        if (tok->type == tok_id)
+                                fprintf(out, " %s", (char *)tok->data);
+
+                        else if (tok->type == tok_lf ||
+                                tok->type == tok_eof) {
+                                tok_free(tok);
+                                break;
+                                }
+
+                        else
+                                fprintf(out, "%c", (char)tok->type);
+
                         tok_free(tok);
-                        fputs("\t86\t",stdout);
                 } while ((tok = gettok()));
-                fprintf(out, ">");
-                tok_free(tok);
+                fprintf(out, ">\n");
+                return;
         }
+
+        // got a type
+        const char *d = doctypestr(doctype_type_tok->data);
+        if (d == NULL) {
+                fprintf(out, "<!DOCTYPE %s>\n", doctype_type_tok->data);
+                return;
+        }
+        fprintf(out, "%s\n", d);
+        tok_free(doctype_type_tok);
+        tok_free(tok);
 }
+
 static const char *doctypestr(char *type)
 {
-        // char *t = type;
-
         // will a btree be faster?
-        if (strcmp(type, "html") >= 0)
+        if (strcmp(type, "html") == 0)
                 return JADEC_DOCTYPE_HTML;
-        else if (strcmp(type, "xml") >= 0)
+        else if (strcmp(type, "xml") == 0)
                 return JADEC_DOCTYPE_XML;
         return NULL;
 }
