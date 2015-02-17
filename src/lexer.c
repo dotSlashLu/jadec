@@ -34,7 +34,6 @@ static char _advance()
 
                 else {
                         // eof, cleanup
-                        fputs("eof\n", stdout);
                         *cur = *forward = EOF;
                 }
         }
@@ -49,16 +48,13 @@ void buf_init(FILE *input)
         buf0 = malloc(sizeof(char) * JADEC_BUF_LEN);
         buf1 = malloc(sizeof(char) * JADEC_BUF_LEN);
         _loadbuf(buf0);
+        cur = forward = buf0;
 }
 
 tokp gettok()
 {
+        fputs("\n\n---gettok---\n\n", stdout);
         tokp tok = calloc(1, sizeof(tok_t));
-
-        if (!forward) forward = buf0;
-        cur = forward;
-
-        _advance();
 
         // id
         if (isalnum(*forward)) {
@@ -83,6 +79,7 @@ tokp gettok()
                 int *i = malloc(sizeof(int));
                 *i = 0;
                 while (isblank(_advance())) (*i)++;
+
                 tok->type = tok_level;
                 tok->data = i;
         }
@@ -91,18 +88,25 @@ tokp gettok()
         else if (*forward == '\r' && _advance() == '\n')
                 tok->type = tok_lf;
         // Unix line feed
-        else if (*forward == '\n')
+        else if (*forward == '\n') {
                 tok->type = tok_lf;
+                _advance();
+        }
 
         // eof
         else if (*forward == EOF) {
                 tok->type = tok_eof;
-                // printf("lexer eof\n");
+                _advance();
+                printf("lexer eof\n");
         }
 
-        else
+        else {
+                printf("forward: %d\n", *forward);
                 tok->type = *forward;
+                _advance();
+        }
 
+        printf("\ngot type: %d\n", tok->type);
         return tok;
 }
 
@@ -120,7 +124,6 @@ static long _loadbuf(char *curbuf)
                 return -1;
         }
         *(curbuf + readlen) = -1;
-        printf("*curbuf: %p\n", curbuf);
         return readlen;
 }
 

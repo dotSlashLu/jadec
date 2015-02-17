@@ -30,6 +30,7 @@ void parse(FILE *input, FILE *output)
 {
         in = input;
         out = stdout;
+        fputs("\t33\t",stdout);
         tok = gettok();
 
         if (tok->type == tok_id) {
@@ -39,7 +40,6 @@ void parse(FILE *input, FILE *output)
         }
 
         else if (tok->type == tok_eof) {
-                fputs("parser eof\n", stdout);
                 exit(0);
         }
 }
@@ -49,10 +49,13 @@ static void node_doctype()
         char *doctype = malloc(sizeof(char) * 110);
 
         tok_free(tok);
+        fputs("\t52\t",stdout);
         tok = gettok();
-        printf("got tok: %p, type: %d, data: %s\n", tok, tok->type, (char *)tok->data);
+        tokp doctype_type_tok = tok;
+        fputs("\t55\t",stdout);
+        tok = gettok();
         // default doctype html
-        if (tok->type == tok_lf) {
+        if (tok->type == tok_lf || tok->type == tok_eof) {
                 strcpy(doctype, doctypestr("html"));
                 // fprintf(out, "%s\n", doctype);
                 free(doctype);
@@ -61,10 +64,10 @@ static void node_doctype()
         else
                 strcpy(doctype, doctypestr(tok->data));
 
-        tokp doctype_type_tok = tok;
-        tok = gettok();
+        printf("64: %d\n", tok->type);
         // pre-defined doctypes
         if (tok->type == tok_lf || tok->type == tok_eof) {
+                printf("f\n");
                 line++;
                 fputs(doctype, stdout);
                 free(doctype_type_tok);
@@ -74,12 +77,14 @@ static void node_doctype()
         else {
                 fprintf(out, "<!DOCTYPE %s ", (char *)doctype_type_tok->data);
                 tok_free(doctype_type_tok);
-                while ((tok = gettok()) && tok->type != tok_lf && tok->type != tok_eof) {
+                do {
+                        printf("76 type: %d\n", tok->type);
                         if (tok->type == tok_id) fprintf(out, "%s ", (char *)tok->data);
+                        else if (tok->type == tok_lf || tok->type == tok_eof) break;
                         else fprintf(out, "%c", (char)tok->type);
                         tok_free(tok);
-                }
-                printf("type: %d\n", tok->type);
+                        fputs("\t86\t",stdout);
+                } while ((tok = gettok()));
                 fprintf(out, ">");
                 tok_free(tok);
         }
