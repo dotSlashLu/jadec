@@ -11,11 +11,12 @@ static tokp tok;
 static FILE *in; static FILE *out;
 static const char *doctypestr(char *);
 static void node_doctype();
-void parse(FILE *input, FILE *output);
+void parse(FILE *input);
 
 int main(int argc, char **argv)
 {
         in = fopen(*++argv, "r");
+        out = stdout;
         if (in == NULL) {
                 perror("fopen: ");
                 exit(1);
@@ -24,42 +25,35 @@ int main(int argc, char **argv)
         // init lexer buffer
         buf_init(in);
         while(1) {
-                parse(in, stdout);
-                if (!tok || tok->type == tok_eof) {fputs("should end prog.\n", stdout); break;}
-                // printf("%d\n", tok->type);
+                parse(in);
+                if (!tok || tok->type == tok_eof) break;
+                tok_free(tok);
         }
 
         return 0;
 }
 
-void parse(FILE *input, FILE *output)
+void parse(FILE *input)
 {
-        static int i = 0;
-        in = input;
-        out = stdout;
         if (!tok) tok = gettok();
 
         if (tok->type == tok_id) {
-                fputs("(43)id\n", stdout);
                 // doctype
                 if (strcmp(tok->data, "doctype") >= 0)
                         node_doctype();
         }
 
         else if (tok->type == tok_eof) {
-                fputs("(49)eof\n", stdout);
                 exit(0);
         }
-
-        else printf("(51)type: %d, data: %s\n", tok->type, (char *)tok->data);
-        if (i++ == 3) exit(1);
 }
 
 static void node_doctype()
 {
-        tok_free(tok);
+        // tok_free(tok);
         tok = gettok();
-        tokp doctype_type_tok = tok;
+        tokp doctype_type_tok = calloc(1, sizeof(tok_t));
+        memcpy(doctype_type_tok, tok, sizeof(*tok));
 
         // no type: doctype$
         if (doctype_type_tok->type == tok_lf ||
@@ -79,16 +73,17 @@ static void node_doctype()
 
                         else if (tok->type == tok_lf ||
                                 tok->type == tok_eof) {
-                                tok_free(tok);
+                                // tok_free(tok);
                                 break;
                                 }
 
                         else
                                 fprintf(out, "%c", (char)tok->type);
 
-                        tok_free(tok);
+                        // tok_free(tok);
                 } while ((tok = gettok()));
                 fprintf(out, ">\n");
+                // tok_free(tok);
                 return;
         }
 
@@ -100,7 +95,7 @@ static void node_doctype()
         }
         fprintf(out, "%s\n", d);
         tok_free(doctype_type_tok);
-        tok_free(tok);
+        // tok_free(tok);
 }
 
 static const char *doctypestr(char *type)

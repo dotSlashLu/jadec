@@ -12,7 +12,7 @@ static FILE *_in;
 
 static long _loadbuf(char *curbuf);
 static char _advance();
-
+static tokp tok;
 // check for buffer then peek for one char
 static char _advance()
 {
@@ -20,31 +20,28 @@ static char _advance()
         if (*forward++ == -1) {
                 // end of buf0
                 if (forward == buf0 + JADEC_BUF_LEN) {
-                        fputs("switch to buf1\n", stderr);
                         _loadbuf(buf1);
                         forward = buf1;
                 }
 
                 // end of buf1
                 else if (forward == buf1 + JADEC_BUF_LEN) {
-                        fputs("switch to buf0\n", stderr);
                         _loadbuf(buf0);
                         forward = buf0;
                 }
 
                 else {
-                        fputs("eof\n", stdout);
                         // eof, cleanup
                         *cur = *forward = EOF;
                 }
         }
 
-        printf("(l42)forward: %c\n", *forward);
         return *forward;
 }
 
 void buf_init(FILE *input)
 {
+        tok = calloc(1, sizeof(tok_t));
         _in = input;
         buf0 = malloc(sizeof(char) * JADEC_BUF_LEN);
         buf1 = malloc(sizeof(char) * JADEC_BUF_LEN);
@@ -54,21 +51,17 @@ void buf_init(FILE *input)
 
 tokp gettok()
 {
-        tokp tok = calloc(1, sizeof(tok_t));
-
         // id
         if (isalnum(*forward)) {
                 while (isalnum(*forward++));
                 int idlen = forward - cur;
-                char *idstr = malloc(sizeof(char) * idlen);
+                char *idstr = malloc(idlen);
                 strncpy(idstr, cur, idlen - 1);
-                *(idstr + idlen) = '\0';
+                *(idstr + idlen - 1) = '\0';
                 cur = forward;
-                // printf("idstr: %s\n", idstr);
 
                 // skip trailing spaces
-                while (isblank(*forward))
-                        _advance();
+                while (isblank(*forward)) forward++;
 
                 tok->type = tok_id;
                 tok->data = idstr;
@@ -86,12 +79,10 @@ tokp gettok()
 
         // Windows line feed
         else if (*forward == '\r' && _advance() == '\n') {
-                fputs("should be lf!\n", stdout);
                 tok->type = tok_lf;
         }
         // Unix line feed
         else if (*forward == '\n') {
-                fputs("should be lf!\n", stdout);
                 tok->type = tok_lf;
                 _advance();
         }
@@ -102,11 +93,11 @@ tokp gettok()
         }
 
         else {
-                printf("forward: %d\n", *forward);
                 tok->type = *forward;
                 _advance();
         }
 
+        // printf("tok(%p) - type: %d data: %s\n", tok, tok->type, (char *)tok->data);
         return tok;
 }
 
@@ -128,9 +119,7 @@ static long _loadbuf(char *curbuf)
 
 void tok_free(tokp tok)
 {
-        fputs("tokfree\n", stdout);
         if (!tok) return;
         free(tok->data);
         free(tok);
-        tok = NULL;
 }
