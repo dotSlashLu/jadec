@@ -33,11 +33,13 @@ static char _advance()
                 }
 
                 else {
+                        fputs("eof\n", stdout);
                         // eof, cleanup
                         *cur = *forward = EOF;
                 }
         }
 
+        printf("(l42)forward: %c\n", *forward);
         return *forward;
 }
 
@@ -83,10 +85,13 @@ tokp gettok()
         }
 
         // Windows line feed
-        else if (*forward == '\r' && _advance() == '\n')
+        else if (*forward == '\r' && _advance() == '\n') {
+                fputs("should be lf!\n", stdout);
                 tok->type = tok_lf;
+        }
         // Unix line feed
         else if (*forward == '\n') {
+                fputs("should be lf!\n", stdout);
                 tok->type = tok_lf;
                 _advance();
         }
@@ -123,6 +128,7 @@ static long _loadbuf(char *curbuf)
 
 void tok_free(tokp tok)
 {
+        fputs("tokfree\n", stdout);
         if (!tok) return;
         free(tok->data);
         free(tok);

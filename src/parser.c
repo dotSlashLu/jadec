@@ -25,26 +25,34 @@ int main(int argc, char **argv)
         buf_init(in);
         while(1) {
                 parse(in, stdout);
-                if (!tok || tok->type == tok_eof) break;
+                if (!tok || tok->type == tok_eof) {fputs("should end prog.\n", stdout); break;}
                 // printf("%d\n", tok->type);
         }
+
+        return 0;
 }
 
 void parse(FILE *input, FILE *output)
 {
+        static int i = 0;
         in = input;
         out = stdout;
         if (!tok) tok = gettok();
 
         if (tok->type == tok_id) {
+                fputs("(43)id\n", stdout);
                 // doctype
                 if (strcmp(tok->data, "doctype") >= 0)
                         node_doctype();
         }
 
         else if (tok->type == tok_eof) {
+                fputs("(49)eof\n", stdout);
                 exit(0);
         }
+
+        else printf("(51)type: %d, data: %s\n", tok->type, (char *)tok->data);
+        if (i++ == 3) exit(1);
 }
 
 static void node_doctype()
@@ -87,7 +95,7 @@ static void node_doctype()
         // got a type
         const char *d = doctypestr(doctype_type_tok->data);
         if (d == NULL) {
-                fprintf(out, "<!DOCTYPE %s>\n", doctype_type_tok->data);
+                fprintf(out, "<!DOCTYPE %s>\n", (char *)doctype_type_tok->data);
                 return;
         }
         fprintf(out, "%s\n", d);
