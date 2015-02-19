@@ -29,5 +29,6 @@ enum {
 
 tokp gettok();
 void tok_free(tokp tok);
-void buf_init();
+void lexer_init(FILE *);
+void lexer_free();
 #endif

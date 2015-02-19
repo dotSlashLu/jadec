@@ -39,7 +39,7 @@ static char _advance()
         return *forward;
 }
 
-void buf_init(FILE *input)
+void lexer_init(FILE *input)
 {
         tok = calloc(1, sizeof(tok_t));
         _in = input;
@@ -49,15 +49,23 @@ void buf_init(FILE *input)
         cur = forward = buf0;
 }
 
+void lexer_free(FILE *input)
+{
+        free(buf0);
+        free(buf1);
+}
+
 tokp gettok()
 {
+//        free(tok->data);
         // id
         if (isalnum(*forward)) {
-                while (isalnum(*forward++));
+                // while (isalnum(*forward++));
+                while (isalnum(*forward)) {forward++;}
                 int idlen = forward - cur;
-                char *idstr = malloc(idlen);
-                strncpy(idstr, cur, idlen - 1);
-                *(idstr + idlen - 1) = '\0';
+                char *idstr = malloc(idlen + 1);
+                strncpy(idstr, cur, idlen);
+                *(idstr + idlen) = '\0';
                 cur = forward;
 
                 // skip trailing spaces
@@ -69,9 +77,10 @@ tokp gettok()
 
         // level
         else if (isblank(*forward)) {
+                fputs("lvl\n",stdout);
                 int *i = malloc(sizeof(int));
                 *i = 0;
-                while (isblank(_advance())) (*i)++;
+                while (isblank(*forward)) {(*i)++;forward++;}
 
                 tok->type = tok_level;
                 tok->data = i;

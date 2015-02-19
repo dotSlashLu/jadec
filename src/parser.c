@@ -18,17 +18,21 @@ int main(int argc, char **argv)
         in = fopen(*++argv, "r");
         out = stdout;
         if (in == NULL) {
-                perror("fopen: ");
+                perror("open file");
                 exit(1);
         }
 
         // init lexer buffer
-        buf_init(in);
+        lexer_init(in);
+
         while(1) {
                 parse(in);
                 if (!tok || tok->type == tok_eof) break;
-                tok_free(tok);
         }
+
+        tok_free(tok);
+        lexer_free();
+        fclose(in);
 
         return 0;
 }
@@ -41,19 +45,27 @@ void parse(FILE *input)
                 // doctype
                 if (strcmp(tok->data, "doctype") >= 0)
                         node_doctype();
+                else tok->type = tok_eof;
+        }
+
+        if (tok->type == tok_lf) {
+                line++;
+                tok = gettok();
         }
 
         else if (tok->type == tok_eof) {
-                exit(0);
+                return;
         }
 }
 
 static void node_doctype()
 {
-        // tok_free(tok);
+        free(tok->data);
         tok = gettok();
         tokp doctype_type_tok = calloc(1, sizeof(tok_t));
-        memcpy(doctype_type_tok, tok, sizeof(*tok));
+        doctype_type_tok->type = tok->type;
+        char *type = malloc(strlen(tok->data) + 1);
+        doctype_type_tok->data = strcpy(type, tok->data);
 
         // no type: doctype$
         if (doctype_type_tok->type == tok_lf ||
@@ -63,17 +75,19 @@ static void node_doctype()
                 return;
         }
 
+        free(tok->data);
         tok = gettok();
         if (tok->type != tok_lf && tok->type != tok_eof) {
                 fprintf(out, "<!DOCTYPE %s", (char *)doctype_type_tok->data);
                 tok_free(doctype_type_tok);
                 do {
-                        if (tok->type == tok_id)
+                        if (tok->type == tok_id) {
                                 fprintf(out, " %s", (char *)tok->data);
+                                free(tok->data);
+                        }
 
                         else if (tok->type == tok_lf ||
                                 tok->type == tok_eof) {
-                                // tok_free(tok);
                                 break;
                                 }
 
