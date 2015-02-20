@@ -43,8 +43,8 @@ void lexer_init(FILE *input)
 {
         tok = calloc(1, sizeof(tok_t));
         _in = input;
-        buf0 = malloc(sizeof(char) * JADEC_BUF_LEN);
-        buf1 = malloc(sizeof(char) * JADEC_BUF_LEN);
+        buf0 = malloc(JADEC_BUF_LEN);
+        buf1 = malloc(JADEC_BUF_LEN);
         _loadbuf(buf0);
         cur = forward = buf0;
 }
@@ -66,18 +66,18 @@ tokp gettok()
                 char *idstr = malloc(idlen + 1);
                 strncpy(idstr, cur, idlen);
                 *(idstr + idlen) = '\0';
-                cur = forward;
 
                 // skip trailing spaces
                 while (isblank(*forward)) forward++;
 
                 tok->type = tok_id;
                 tok->data = idstr;
+
+                cur = forward;
         }
 
         // level
         else if (isblank(*forward)) {
-                fputs("lvl\n",stdout);
                 int *i = malloc(sizeof(int));
                 *i = 0;
                 while (isblank(*forward)) {(*i)++;forward++;}
@@ -129,6 +129,6 @@ static long _loadbuf(char *curbuf)
 void tok_free(tokp tok)
 {
         if (!tok) return;
-        free(tok->data);
+        // free(tok->data);
         free(tok);
 }

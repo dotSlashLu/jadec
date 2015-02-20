@@ -4,9 +4,10 @@
 
 #include "jadec.h"
 #include "lexer.h"
+#include "parser.h"
 #include "doctype.h"
 
-int line = 1;
+static int line = 1;
 static tokp tok;
 static FILE *in; static FILE *out;
 static const char *doctypestr(char *);
@@ -45,7 +46,13 @@ void parse(FILE *input)
                 // doctype
                 if (strcmp(tok->data, "doctype") >= 0)
                         node_doctype();
-                else tok->type = tok_eof;
+                else {
+                        tok->type = tok_eof;
+                }
+        }
+
+        if (tok->type == tok_level) {
+                tok = gettok();
         }
 
         if (tok->type == tok_lf) {
@@ -56,6 +63,17 @@ void parse(FILE *input)
         else if (tok->type == tok_eof) {
                 return;
         }
+}
+
+
+/**
+ * *node*      ->  *nodeName*
+ *                 *nodeAttrList*
+ *                 *nodeCtnt*
+ */
+static void node()
+{
+
 }
 
 static void node_doctype()
@@ -119,6 +137,8 @@ static const char *doctypestr(char *type)
                 return JADEC_DOCTYPE_HTML;
         else if (strcmp(type, "xml") == 0)
                 return JADEC_DOCTYPE_XML;
+        else if (strcmp(type, "strict") == 0)
+                return JADEC_DOCTYPE_STRICT;
         return NULL;
 }
 

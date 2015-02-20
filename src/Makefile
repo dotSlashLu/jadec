@@ -9,7 +9,7 @@ test: clean jadec.out
 	./jadec.out test.in
 
 memtest: clean jadec.out
-	valgrind ./jadec.out test.in
+	valgrind --leak-check=full -v ./jadec.out test.in
 
 clean:
 	rm -f *.out *.o *.a
