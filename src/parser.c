@@ -12,6 +12,7 @@ static tokp tok;
 static FILE *in; static FILE *out;
 static const char *doctypestr(char *);
 static void node_doctype();
+static void delim(tokp);
 void parse(FILE *input);
 
 int main(int argc, char **argv)
@@ -72,15 +73,14 @@ void parse(FILE *input)
  * *node*      ->  *nodeName*
  *                 *nodeAttrList*
  *                 *nodeCtnt*
- */
 static void node()
 {
 
 }
+ */
 
 static void node_doctype()
 {
-        // free(tok->data);
         tok = gettok();
         tokp doctype_type_tok = calloc(1, sizeof(tok_t));
         doctype_type_tok->type = tok->type;
@@ -96,15 +96,23 @@ static void node_doctype()
                 return;
         }
 
-        // free(tok->data);
         tok = gettok();
-        if (tok->type != tok_lf && tok->type != tok_eof) {
-                fprintf(out, "<!DOCTYPE %s", (char *)doctype_type_tok->data);
+        if (tok->type != tok_lf &&
+                tok->type != tok_eof &&
+                tok->type != tok_delim)
+        {
+                fputs("<!DOCTYPE", out);
+                if (doctype_type_tok->type == tok_delim)
+                        delim(doctype_type_tok);
+
+                else
+                        fprintf(out, "<!DOCTYPE %s",
+                                (char *)doctype_type_tok->data);
                 free(type);
                 tok_free(doctype_type_tok);
                 do {
                         if (tok->type == tok_id) {
-                                fprintf(out, " %s", (char *)tok->data);
+                                fprintf(out, "%s", (char *)tok->data);
                                 // free(tok->data);
                         }
 
@@ -112,6 +120,10 @@ static void node_doctype()
                                 tok->type == tok_eof) {
                                 break;
                                 }
+
+                        else if (tok->type == tok_delim) {
+                                delim(tok);
+                        }
 
                         else
                                 fprintf(out, "%c", (char)tok->type);
@@ -133,6 +145,16 @@ static void node_doctype()
         free(type);
         tok_free(doctype_type_tok);
         // tok_free(tok);
+}
+
+static void delim(tokp tok)
+{
+        int delimlen = *(int *)tok->data;
+        char *delims = malloc(delimlen + 1);
+        memset(delims, ' ', delimlen);
+        *(delims + delimlen) = '\0';
+        fprintf(out, "%s", delims);
+        free(delims);
 }
 
 static const char *doctypestr(char *type)

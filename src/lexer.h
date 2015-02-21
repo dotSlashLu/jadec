@@ -10,6 +10,7 @@ enum {
         tok_id = 256,
         // \r?\n
         tok_lf,
+        tok_delim,
         tok_level,
         tok_eof
 };

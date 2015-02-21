@@ -14,6 +14,7 @@ static long _loadbuf(char *curbuf);
 static char _advance();
 static tokp tok;
 
+
 void *jadec_pool;
 static size_t pool_size = JADEC_POOL_SIZE;
 static int pool_cur = 0;
@@ -102,7 +103,7 @@ tokp gettok()
                 *(idstr + idlen) = '\0';
 
                 // skip trailing spaces
-                while (isblank(*forward)) forward++;
+                // while (isblank(*forward)) forward++;
 
                 tok->type = tok_id;
                 tok->data = idstr;
@@ -110,14 +111,19 @@ tokp gettok()
                 cur = forward;
         }
 
-        // level
+        // [ \t]
         else if (isblank(*forward)) {
                 int *i = pool_alloc(sizeof(int));
                 *i = 0;
-                while (isblank(*forward)) {(*i)++;forward++;}
+                while (isblank(*forward)) {
+                        (*i)++;
+                        forward++;
+                }
 
-                tok->type = tok_level;
+                tok->type = tok_delim;
                 tok->data = i;
+
+                cur = forward;
         }
 
         // Windows line feed
@@ -148,14 +154,12 @@ tokp gettok()
 static long _loadbuf(char *curbuf)
 {
         size_t readlen = 0;
-        // char *buf = (*buf0 == -1 || *buf0 == NULL) ?  buf0 : buf1;
 
-        if (curbuf == NULL) curbuf = malloc(sizeof(char) * JADEC_BUF_LEN);
+        if (curbuf == NULL) curbuf = malloc(JADEC_BUF_LEN);
         readlen = fread(curbuf, 1, JADEC_BUF_LEN - 1, _in);
         // eof
-        if (!readlen && feof(_in)) {
+        if (!readlen && feof(_in))
                 return -1;
-        }
         *(curbuf + readlen) = -1;
         return readlen;
 }
