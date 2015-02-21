@@ -63,6 +63,8 @@ void parse(FILE *input)
         else if (tok->type == tok_eof) {
                 return;
         }
+
+        jadec_pool_release(0);
 }
 
 
@@ -78,7 +80,7 @@ static void node()
 
 static void node_doctype()
 {
-        free(tok->data);
+        // free(tok->data);
         tok = gettok();
         tokp doctype_type_tok = calloc(1, sizeof(tok_t));
         doctype_type_tok->type = tok->type;
@@ -89,19 +91,21 @@ static void node_doctype()
         if (doctype_type_tok->type == tok_lf ||
         doctype_type_tok->type == tok_eof) {
                 fprintf(out, "%s\n", doctypestr("html"));
+                free(type);
                 tok_free(doctype_type_tok);
                 return;
         }
 
-        free(tok->data);
+        // free(tok->data);
         tok = gettok();
         if (tok->type != tok_lf && tok->type != tok_eof) {
                 fprintf(out, "<!DOCTYPE %s", (char *)doctype_type_tok->data);
+                free(type);
                 tok_free(doctype_type_tok);
                 do {
                         if (tok->type == tok_id) {
                                 fprintf(out, " %s", (char *)tok->data);
-                                free(tok->data);
+                                // free(tok->data);
                         }
 
                         else if (tok->type == tok_lf ||
@@ -126,6 +130,7 @@ static void node_doctype()
                 return;
         }
         fprintf(out, "%s\n", d);
+        free(type);
         tok_free(doctype_type_tok);
         // tok_free(tok);
 }

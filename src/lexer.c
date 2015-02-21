@@ -13,6 +13,38 @@ static FILE *_in;
 static long _loadbuf(char *curbuf);
 static char _advance();
 static tokp tok;
+
+void *jadec_pool;
+static size_t pool_size = JADEC_POOL_SIZE;
+static int pool_cur = 0;
+static void *pool_init()
+{
+        jadec_pool = malloc(JADEC_POOL_SIZE);
+        if (!jadec_pool) {
+                perror("malloc");
+                exit(1);
+        }
+        return jadec_pool;
+}
+
+static void *pool_alloc(size_t s)
+{
+        if (pool_cur + s >= pool_size) {
+                jadec_pool = realloc(jadec_pool, pool_size + JADEC_POOL_SIZE);
+                pool_size += JADEC_POOL_SIZE;
+        }
+
+        void *ret = jadec_pool + pool_cur;
+        pool_cur += s;
+        return ret;
+}
+
+// reset cursor for reuse of memory
+void jadec_pool_release(int i)
+{
+        pool_cur = i;
+}
+
 // check for buffer then peek for one char
 static char _advance()
 {
@@ -47,12 +79,14 @@ void lexer_init(FILE *input)
         buf1 = malloc(JADEC_BUF_LEN);
         _loadbuf(buf0);
         cur = forward = buf0;
+        pool_init();
 }
 
 void lexer_free(FILE *input)
 {
         free(buf0);
         free(buf1);
+        free(jadec_pool);
 }
 
 tokp gettok()
@@ -63,7 +97,7 @@ tokp gettok()
                 // while (isalnum(*forward++));
                 while (isalnum(*forward)) {forward++;}
                 int idlen = forward - cur;
-                char *idstr = malloc(idlen + 1);
+                char *idstr = pool_alloc(idlen + 1);
                 strncpy(idstr, cur, idlen);
                 *(idstr + idlen) = '\0';
 
@@ -78,7 +112,7 @@ tokp gettok()
 
         // level
         else if (isblank(*forward)) {
-                int *i = malloc(sizeof(int));
+                int *i = pool_alloc(sizeof(int));
                 *i = 0;
                 while (isblank(*forward)) {(*i)++;forward++;}
 

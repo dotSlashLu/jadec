@@ -18,4 +18,5 @@ tokp gettok();
 void tok_free(tokp tok);
 void lexer_init(FILE *);
 void lexer_free();
+void jadec_pool_release(int);
 #endif
