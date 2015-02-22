@@ -52,17 +52,21 @@ void parse(FILE *input)
                 }
         }
 
-        if (tok->type == tok_level) {
+        else if (tok->type == tok_level) {
                 tok = gettok();
         }
 
-        if (tok->type == tok_lf) {
+        else if (tok->type == tok_lf) {
                 line++;
                 tok = gettok();
         }
 
         else if (tok->type == tok_eof) {
                 return;
+        }
+
+        else if (tok->type == tok_delim) {
+                tok->type = tok_eof;
         }
 
         jadec_pool_release(0);
@@ -82,33 +86,33 @@ static void node()
 static void node_doctype()
 {
         tok = gettok();
+        tokp doctype_space_tok = calloc(1, sizeof(tok_t));
+        doctype_space_tok->type = tok->type;
+        doctype_space_tok->data = tok->data;
+
+        tok = gettok();
         tokp doctype_type_tok = calloc(1, sizeof(tok_t));
         doctype_type_tok->type = tok->type;
-        char *type = malloc(strlen(tok->data) + 1);
-        doctype_type_tok->data = strcpy(type, tok->data);
+        doctype_type_tok->data = tok->data;
 
         // no type: doctype$
-        if (doctype_type_tok->type == tok_lf ||
-        doctype_type_tok->type == tok_eof) {
+        if (doctype_space_tok->type != tok_delim ||
+                doctype_type_tok->type == tok_lf ||
+                doctype_type_tok->type == tok_eof) {
                 fprintf(out, "%s\n", doctypestr("html"));
-                free(type);
+                tok_free(doctype_space_tok);
                 tok_free(doctype_type_tok);
                 return;
         }
 
         tok = gettok();
         if (tok->type != tok_lf &&
-                tok->type != tok_eof &&
-                tok->type != tok_delim)
+                tok->type != tok_eof)
         {
                 fputs("<!DOCTYPE", out);
-                if (doctype_type_tok->type == tok_delim)
-                        delim(doctype_type_tok);
-
-                else
-                        fprintf(out, "<!DOCTYPE %s",
-                                (char *)doctype_type_tok->data);
-                free(type);
+                delim(doctype_space_tok);
+                fputs((char *)doctype_type_tok->data, out);
+                tok_free(doctype_space_tok);
                 tok_free(doctype_type_tok);
                 do {
                         if (tok->type == tok_id) {
@@ -142,9 +146,8 @@ static void node_doctype()
                 return;
         }
         fprintf(out, "%s\n", d);
-        free(type);
+        tok_free(doctype_space_tok);
         tok_free(doctype_type_tok);
-        // tok_free(tok);
 }
 
 static void delim(tokp tok)
