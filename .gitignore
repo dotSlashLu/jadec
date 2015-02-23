@@ -9,3 +9,7 @@ configure
 *.out
 *.o
 *.a
+
+# autotool
+config.h
+config.status

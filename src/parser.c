@@ -7,13 +7,18 @@
 #include "parser.h"
 #include "doctype.h"
 
+// current line
 static int line = 1;
+// current tok
 static tokp tok;
 static FILE *in; static FILE *out;
+// get doctype string from type
 static const char *doctypestr(char *);
+
+// doctype node
 static void node_doctype();
+// delim tok
 static void delim(tokp);
-void parse(FILE *input);
 
 int main(int argc, char **argv)
 {
@@ -29,6 +34,7 @@ int main(int argc, char **argv)
 
         while(1) {
                 parse(in);
+                jadec_pool_release(0);
                 if (!tok || tok->type == tok_eof) break;
         }
 
@@ -43,33 +49,28 @@ void parse(FILE *input)
 {
         if (!tok) tok = gettok();
 
-        if (tok->type == tok_id) {
-                // doctype
-                if (strcmp(tok->data, "doctype") >= 0)
-                        node_doctype();
-                else {
+        switch (tok->type) {
+                case tok_id:
+                        // doctype
+                        if (strcmp(tok->data, "doctype") >= 0)
+                                node_doctype();
+                        else tok->type = tok_eof;
+                        break;
+
+                case tok_lf:
+                        line++;
+                        tok = gettok();
+                        break;
+
+                case tok_eof:
+                        return;
+                        break;
+
+                case tok_delim:
                         tok->type = tok_eof;
-                }
-        }
+                        break;
 
-        else if (tok->type == tok_level) {
-                tok = gettok();
         }
-
-        else if (tok->type == tok_lf) {
-                line++;
-                tok = gettok();
-        }
-
-        else if (tok->type == tok_eof) {
-                return;
-        }
-
-        else if (tok->type == tok_delim) {
-                tok->type = tok_eof;
-        }
-
-        jadec_pool_release(0);
 }
 
 

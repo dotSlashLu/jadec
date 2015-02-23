@@ -15,4 +15,6 @@ typedef struct domnode {
         struct domnode *parent;
 } domnode_t, *domnodep;
 
+void parse(FILE *input);
+
 #endif

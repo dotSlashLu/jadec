@@ -1,0 +1,6 @@
+#ifndef JADEC_CONFIG_H
+#define JADEC_CONFIG_H
+
+#define JADEC_PAGE_SIZE @pagesize@
+
+#endif

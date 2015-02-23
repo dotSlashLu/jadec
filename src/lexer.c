@@ -92,11 +92,10 @@ void lexer_free(FILE *input)
 
 tokp gettok()
 {
-//        free(tok->data);
         // id
         if (isalnum(*forward)) {
                 // while (isalnum(*forward++));
-                while (isalnum(*forward)) {forward++;}
+                while (!isspace(*forward)) {forward++;}
                 int idlen = forward - cur;
                 char *idstr = pool_alloc(idlen + 1);
                 strncpy(idstr, cur, idlen);
