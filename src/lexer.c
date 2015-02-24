@@ -8,7 +8,7 @@
 
 static char *buf0 = NULL, *buf1 = NULL;
 static char *cur = NULL, *forward = NULL;
-static FILE *_in;
+static char *_in;
 
 static long _loadbuf(char *curbuf);
 static char _advance();
@@ -72,7 +72,7 @@ static char _advance()
         return *forward;
 }
 
-void lexer_init(FILE *input)
+void lexer_init(char *input)
 {
         tok = calloc(1, sizeof(tok_t));
         _in = input;

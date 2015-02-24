@@ -11,7 +11,7 @@
 static int line = 1;
 // current tok
 static tokp tok;
-static FILE *in; static FILE *out;
+static FILE *out;
 // get doctype string from type
 static const char *doctypestr(char *);
 
@@ -20,6 +20,7 @@ static void node_doctype();
 // delim tok
 static void delim(tokp);
 
+/*
 int main(int argc, char **argv)
 {
         in = fopen(*++argv, "r");
@@ -44,6 +45,7 @@ int main(int argc, char **argv)
 
         return 0;
 }
+*/
 
 void parse(FILE *input)
 {

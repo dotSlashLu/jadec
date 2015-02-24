@@ -10,11 +10,27 @@
 #include "jadec.h"
 #include "lexer.h"
 #include "parser.h"
-#include "../config.h"
+#include "config.h"
+
+void parsefile(const char *filename, FILE *output);
 
 int main(int argc, char **argv)
 {
-        int fd = open(*++argv, O_RDONLY);
+        char *filename = *(++argv);
+        parsefile(filename, stdout);
+        return 0;
+}
+
+
+/**
+ *      parse file
+ *      params: filename, output stream
+ */
+void parsefile(const char *filename, FILE *output)
+{
+        char *filectnt;
+
+        int fd = open(filename, O_RDONLY);
         if (fd == -1) {
                 perror("open file");
                 exit(1);
@@ -23,26 +39,23 @@ int main(int argc, char **argv)
         // get file size
         struct stat st;
         fstat(fd, &st);
-        long fsize = (long)st.st_size;
+        off_t fsize = (long)st.st_size;
 
-        size_t size = (size_t)(((int)fsize / JADEC_PAGE_SIZE + 1) * JADEC_PAGE_SIZE);
+        size_t size = (size_t)(((size_t)fsize / JADEC_PAGE_SIZE + 1) * JADEC_PAGE_SIZE);
 
-        char *ctnt;
-        ctnt = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+        filectnt = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
         close(fd);
 
-        if (ctnt == MAP_FAILED) {
+        if (filectnt == MAP_FAILED) {
                 perror("mmap");
                 exit(1);
         }
 
+        /*
         int i = 0;
         while (i < fsize) {
-                printf("%c", *ctnt++);
+                fprintf(output, "%c", *filectnt++);
                 i++;
         }
-
-        munmap(ctnt, size);
-        return 0;
+        munmap(filectnt, size);
 }
-
