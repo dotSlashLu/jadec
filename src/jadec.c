@@ -57,5 +57,8 @@ void parsefile(const char *filename, FILE *output)
                 fprintf(output, "%c", *filectnt++);
                 i++;
         }
+        */
+        parse(filectnt, stdout);
+
         munmap(filectnt, size);
 }

@@ -8,6 +8,7 @@ typedef struct tok {
 
 enum {
         tok_id = 256,
+        tok_glyph,
         // \r?\n
         tok_lf,
         tok_delim,
@@ -17,7 +18,7 @@ enum {
 
 tokp gettok();
 void tok_free(tokp tok);
-void lexer_init(FILE *);
+void lexer_init(char *);
 void lexer_free();
 void jadec_pool_release(int);
 #endif

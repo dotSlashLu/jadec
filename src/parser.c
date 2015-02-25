@@ -11,20 +11,21 @@
 static int line = 1;
 // current tok
 static tokp tok;
-static FILE *out;
+static FILE *_output;
+
 // get doctype string from type
 static const char *doctypestr(char *);
-
 // doctype node
 static void node_doctype();
 // delim tok
 static void delim(tokp);
+static void parsetok();
 
 /*
 int main(int argc, char **argv)
 {
         in = fopen(*++argv, "r");
-        out = stdout;
+        _output = stdout;
         if (in == NULL) {
                 perror("open file");
                 exit(1);
@@ -46,8 +47,21 @@ int main(int argc, char **argv)
         return 0;
 }
 */
+void parse(char *in, FILE *output)
+{
+        _output = output;
+        lexer_init(in);
+        while(1) {
+                parsetok();
+                jadec_pool_release(0);
+                if (!tok || tok->type == tok_eof) break;
+        }
 
-void parse(FILE *input)
+        tok_free(tok);
+        lexer_free();
+}
+
+static void parsetok()
 {
         if (!tok) tok = gettok();
 
@@ -102,7 +116,8 @@ static void node_doctype()
         if (doctype_space_tok->type != tok_delim ||
                 doctype_type_tok->type == tok_lf ||
                 doctype_type_tok->type == tok_eof) {
-                fprintf(out, "%s\n", doctypestr("html"));
+                printf("doctype space is not delim but %d\n", doctype_space_tok->type);
+                fprintf(_output, "%s\n", doctypestr("html"));
                 tok_free(doctype_space_tok);
                 tok_free(doctype_type_tok);
                 return;
@@ -112,14 +127,14 @@ static void node_doctype()
         if (tok->type != tok_lf &&
                 tok->type != tok_eof)
         {
-                fputs("<!DOCTYPE", out);
+                fputs("<!DOCTYPE", _output);
                 delim(doctype_space_tok);
-                fputs((char *)doctype_type_tok->data, out);
+                fputs((char *)doctype_type_tok->data, _output);
                 tok_free(doctype_space_tok);
                 tok_free(doctype_type_tok);
                 do {
                         if (tok->type == tok_id) {
-                                fprintf(out, "%s", (char *)tok->data);
+                                fprintf(_output, "%s", (char *)tok->data);
                                 // free(tok->data);
                         }
 
@@ -133,11 +148,11 @@ static void node_doctype()
                         }
 
                         else
-                                fprintf(out, "%c", (char)tok->type);
+                                fprintf(_output, "%c", (char)tok->type);
 
                         // tok_free(tok);
                 } while ((tok = gettok()));
-                fprintf(out, ">\n");
+                fprintf(_output, ">\n");
                 // tok_free(tok);
                 return;
         }
@@ -145,10 +160,10 @@ static void node_doctype()
         // got a type
         const char *d = doctypestr(doctype_type_tok->data);
         if (d == NULL) {
-                fprintf(out, "<!DOCTYPE %s>\n", (char *)doctype_type_tok->data);
+                fprintf(_output, "<!DOCTYPE %s>\n", (char *)doctype_type_tok->data);
                 return;
         }
-        fprintf(out, "%s\n", d);
+        fprintf(_output, "%s\n", d);
         tok_free(doctype_space_tok);
         tok_free(doctype_type_tok);
 }
@@ -159,7 +174,7 @@ static void delim(tokp tok)
         char *delims = malloc(delimlen + 1);
         memset(delims, ' ', delimlen);
         *(delims + delimlen) = '\0';
-        fprintf(out, "%s", delims);
+        fprintf(_output, "%s", delims);
         free(delims);
 }
 

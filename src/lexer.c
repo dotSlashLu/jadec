@@ -6,12 +6,14 @@
 #include "jadec.h"
 #include "lexer.h"
 
-static char *buf0 = NULL, *buf1 = NULL;
+static unsigned short u8seq_len;
 static char *cur = NULL, *forward = NULL;
 static char *_in;
+// current utf8 seq
+static char *u8seq;
 
-static long _loadbuf(char *curbuf);
-static char _advance();
+// static long _loadbuf(char *curbuf);
+// static char _advance();
 static tokp tok;
 
 
@@ -46,57 +48,60 @@ void jadec_pool_release(int i)
         pool_cur = i;
 }
 
-// check for buffer then peek for one char
-static char _advance()
+/**
+ *      Advance input and return the read utf8 seq length
+ */
+static unsigned short advance()
 {
-        // sentinel or eof
-        if (*forward++ == -1) {
-                // end of buf0
-                if (forward == buf0 + JADEC_BUF_LEN) {
-                        _loadbuf(buf1);
-                        forward = buf1;
-                }
+        static unsigned short mask[] = {192, 224, 240};
+        u8seq = forward;
+        fputs("forward++ @58\n", stdout);
+        char c = *++forward;
+        unsigned short i, j;
 
-                // end of buf1
-                else if (forward == buf1 + JADEC_BUF_LEN) {
-                        _loadbuf(buf0);
-                        forward = buf0;
-                }
+        if (c == EOF)
+            return 0;
 
-                else {
-                        // eof, cleanup
-                        *cur = *forward = EOF;
-                }
+        i = 0;
+        if ((c & mask[0]) == mask[0]) i++;
+        if ((c & mask[1]) == mask[1]) i++;
+        if ((c & mask[2]) == mask[2]) i++;
+
+        j = 0;
+        while (j < i) {
+            j++;
+            fputs("forward++ @73\n", stdout);
+            forward++;
         }
 
-        return *forward;
+        u8seq_len = i + 1;
+        return i + 1;
 }
 
 void lexer_init(char *input)
 {
         tok = calloc(1, sizeof(tok_t));
         _in = input;
-        buf0 = malloc(JADEC_BUF_LEN);
-        buf1 = malloc(JADEC_BUF_LEN);
-        _loadbuf(buf0);
-        cur = forward = buf0;
+        cur = forward = input;
         pool_init();
 }
 
 void lexer_free(FILE *input)
 {
-        free(buf0);
-        free(buf1);
         free(jadec_pool);
 }
 
 tokp gettok()
 {
+        advance();
         // id
-        if (isalnum(*forward)) {
+        if (u8seq_len > 1 || isalnum(*forward)) {
                 // while (isalnum(*forward++));
-                while (!isspace(*forward)) {forward++;}
+                while ((u8seq_len == 1 && !isspace(*forward)) ||
+                        u8seq_len > 1)
+                        advance();
                 int idlen = forward - cur;
+                printf("idlen: %d\n", idlen);
                 char *idstr = pool_alloc(idlen + 1);
                 strncpy(idstr, cur, idlen);
                 *(idstr + idlen) = '\0';
@@ -108,15 +113,17 @@ tokp gettok()
                 tok->data = idstr;
 
                 cur = forward;
+                printf("cur and forward is @[%c]\n", *cur);
         }
 
         // [ \t]
         else if (isblank(*forward)) {
+                fputs("blank\n", stdout);
                 int *i = pool_alloc(sizeof(int));
                 *i = 0;
                 while (isblank(*forward)) {
                         (*i)++;
-                        forward++;
+                        advance();
                 }
 
                 tok->type = tok_delim;
@@ -126,13 +133,16 @@ tokp gettok()
         }
 
         // Windows line feed
-        else if (*forward == '\r' && _advance() == '\n') {
+        else if (*forward == '\r' && *forward++ == '\n') {
+                fputs("win lf\n", stdout);
                 tok->type = tok_lf;
         }
         // Unix line feed
         else if (*forward == '\n') {
+                fputs("unix lf\n", stdout);
                 tok->type = tok_lf;
-                _advance();
+                fputs("forward++ @140\n", stdout);
+                forward++;
         }
 
         // eof
@@ -141,14 +151,25 @@ tokp gettok()
         }
 
         else {
-                tok->type = *forward;
-                _advance();
+                fputs("glyph\n", stdout);
+                tok->type = tok_glyph;
+                char *data = pool_alloc(u8seq_len + 1);
+                if (u8seq_len < 2) {
+                        *data = *forward++;
+                        *(data + 1) = '\0';
+                }
+                else {
+                        strncpy(data, u8seq, u8seq_len);
+                        *(data + 1) = '\0';
+                        advance();
+                }
         }
 
-        // printf("tok(%p) - type: %d data: %s\n", tok, tok->type, (char *)tok->data);
+        printf("tok(%p) - type: %d data: %s\n", tok, tok->type, (char *)tok->data);
         return tok;
 }
 
+/*
 // two-buffer lookahead
 static long _loadbuf(char *curbuf)
 {
@@ -162,6 +183,7 @@ static long _loadbuf(char *curbuf)
         *(curbuf + readlen) = -1;
         return readlen;
 }
+*/
 
 void tok_free(tokp tok)
 {
