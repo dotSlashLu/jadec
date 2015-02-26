@@ -55,7 +55,6 @@ static unsigned short advance()
 {
         static unsigned short mask[] = {192, 224, 240};
         u8seq = forward;
-        fputs("forward++ @58\n", stdout);
         char c = *++forward;
         unsigned short i, j;
 
@@ -70,7 +69,6 @@ static unsigned short advance()
         j = 0;
         while (j < i) {
             j++;
-            fputs("forward++ @73\n", stdout);
             forward++;
         }
 
@@ -94,54 +92,48 @@ void lexer_free(FILE *input)
 tokp gettok()
 {
         advance();
+        printf("95 - u8seq_len: %d\n", u8seq_len);
         // id
         if (u8seq_len > 1 || isalnum(*forward)) {
-                // while (isalnum(*forward++));
+                do {advance();}
                 while ((u8seq_len == 1 && !isspace(*forward)) ||
-                        u8seq_len > 1)
-                        advance();
+                        u8seq_len > 1);
                 int idlen = forward - cur;
-                printf("idlen: %d\n", idlen);
+                // printf("idlen: %d\n", idlen);
                 char *idstr = pool_alloc(idlen + 1);
                 strncpy(idstr, cur, idlen);
                 *(idstr + idlen) = '\0';
-
-                // skip trailing spaces
-                // while (isblank(*forward)) forward++;
 
                 tok->type = tok_id;
                 tok->data = idstr;
 
                 cur = forward;
-                printf("cur and forward is @[%c]\n", *cur);
+                // printf("cur and forward is @[%c]\n", *cur);
+                forward--;
         }
 
         // [ \t]
         else if (isblank(*forward)) {
-                fputs("blank\n", stdout);
                 int *i = pool_alloc(sizeof(int));
                 *i = 0;
-                while (isblank(*forward)) {
+                do {
                         (*i)++;
                         advance();
-                }
-
+                } while (isblank(*forward));
                 tok->type = tok_delim;
                 tok->data = i;
 
                 cur = forward;
+                forward--;
         }
 
         // Windows line feed
         else if (*forward == '\r' && *forward++ == '\n') {
-                fputs("win lf\n", stdout);
                 tok->type = tok_lf;
         }
         // Unix line feed
         else if (*forward == '\n') {
-                fputs("unix lf\n", stdout);
                 tok->type = tok_lf;
-                fputs("forward++ @140\n", stdout);
                 forward++;
         }
 
@@ -151,21 +143,22 @@ tokp gettok()
         }
 
         else {
-                fputs("glyph\n", stdout);
                 tok->type = tok_glyph;
                 char *data = pool_alloc(u8seq_len + 1);
                 if (u8seq_len < 2) {
                         *data = *forward++;
                         *(data + 1) = '\0';
+                        printf("data: %s, u8seqlen: %d\n", data, u8seq_len);
                 }
                 else {
                         strncpy(data, u8seq, u8seq_len);
-                        *(data + 1) = '\0';
+                        printf("glyph len %d\n", u8seq_len);
+                        *(data + u8seq_len + 1) = '\0';
                         advance();
                 }
         }
 
-        printf("tok(%p) - type: %d data: %s\n", tok, tok->type, (char *)tok->data);
+        printf("tok - type: %d data: %s\n", tok->type, (char *)tok->data);
         return tok;
 }
 
