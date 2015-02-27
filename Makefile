@@ -6,3 +6,6 @@ clean:
 	for i in $(DIRS); do \
 		(cd $$i && echo -e "\nCleaning $$i" && $(MAKE) clean) || exit 1; \
 	done
+
+test:
+	cd src && $(MAKE) test

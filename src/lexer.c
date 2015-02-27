@@ -92,7 +92,7 @@ void lexer_free(FILE *input)
 tokp gettok()
 {
         advance();
-        printf("95 - u8seq_len: %d\n", u8seq_len);
+        // printf("[%d]\tu8seq_len: %d\n", __LINE__, u8seq_len);
         // id
         if (u8seq_len > 1 || isalnum(*forward)) {
                 do {advance();}
@@ -118,7 +118,7 @@ tokp gettok()
                 *i = 0;
                 do {
                         (*i)++;
-                        advance();
+                        forward++;
                 } while (isblank(*forward));
                 tok->type = tok_delim;
                 tok->data = i;
@@ -130,6 +130,7 @@ tokp gettok()
         // Windows line feed
         else if (*forward == '\r' && *forward++ == '\n') {
                 tok->type = tok_lf;
+                forward++;
         }
         // Unix line feed
         else if (*forward == '\n') {
@@ -148,7 +149,7 @@ tokp gettok()
                 if (u8seq_len < 2) {
                         *data = *forward++;
                         *(data + 1) = '\0';
-                        printf("data: %s, u8seqlen: %d\n", data, u8seq_len);
+                        // printf("[%d]\tdata: %s, u8seqlen: %d\n", __LINE__, data, u8seq_len);
                 }
                 else {
                         strncpy(data, u8seq, u8seq_len);
@@ -158,7 +159,7 @@ tokp gettok()
                 }
         }
 
-        printf("tok - type: %d data: %s\n", tok->type, (char *)tok->data);
+        // printf("[%d]\ttok - type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
         return tok;
 }
 
