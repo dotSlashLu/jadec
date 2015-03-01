@@ -12,41 +12,20 @@ static int line = 1;
 // current tok
 static tokp tok;
 static FILE *_output;
+// current level
+static int _level = 0;
+// parent dom node
+static domnodep _parent_node = NULL;
 
 // get doctype string from type
 static const char *doctypestr(char *);
 // doctype node
 static void node_doctype();
+static void node();
 // delim tok
 static void delim(tokp);
 static void parsetok();
 
-/*
-int main(int argc, char **argv)
-{
-        in = fopen(*++argv, "r");
-        _output = stdout;
-        if (in == NULL) {
-                perror("open file");
-                exit(1);
-        }
-
-        // init lexer buffer
-        lexer_init(in);
-
-        while(1) {
-                parse(in);
-                jadec_pool_release(0);
-                if (!tok || tok->type == tok_eof) break;
-        }
-
-        tok_free(tok);
-        lexer_free();
-        fclose(in);
-
-        return 0;
-}
-*/
 void parse(char *in, FILE *output)
 {
         _output = output;
@@ -70,22 +49,32 @@ static void parsetok()
                         // doctype
                         if (strcmp(tok->data, "doctype") >= 0)
                                 node_doctype();
-                        else tok->type = tok_eof;
+                        else {
+                                node();
+                                tok = gettok();
+                        }
                         break;
 
                 case tok_lf:
                         line++;
+                        printf("[%d]\tnew line: %d\n", __LINE__, line);
                         tok = gettok();
+                        break;
+
+                case tok_delim:
+                        printf("[%d]\ttok_delim, data: %d\n", __LINE__, *(int *)(tok->data));
+                        _level = *(int *)tok->data;
+                        tok = gettok();
+
                         break;
 
                 case tok_eof:
                         return;
                         break;
 
-                case tok_delim:
-                        tok->type = tok_eof;
+                default:
+                        // printf("[%d]Unimplemented tok: %d, data: %s\n", __LINE__, tok->type, *(char *)tok->data);
                         break;
-
         }
 }
 
@@ -94,11 +83,11 @@ static void parsetok()
  * *node*      ->  *nodeName*
  *                 *nodeAttrList*
  *                 *nodeCtnt*
+ */
 static void node()
 {
-
+        printf("[%d] New dom node\n", __LINE__);
 }
- */
 
 static void node_doctype()
 {
@@ -116,7 +105,6 @@ static void node_doctype()
         if (doctype_space_tok->type != tok_delim ||
                 doctype_type_tok->type == tok_lf ||
                 doctype_type_tok->type == tok_eof) {
-                printf("doctype space is not delim but %d\n", doctype_space_tok->type);
                 fprintf(_output, "%s\n", doctypestr("html"));
                 tok_free(doctype_space_tok);
                 tok_free(doctype_type_tok);

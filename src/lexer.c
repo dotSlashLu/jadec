@@ -115,7 +115,7 @@ tokp gettok()
         // [ \t]
         else if (isblank(*forward)) {
                 int *i = pool_alloc(sizeof(int));
-                *i = 0;
+                *i = 1;
                 do {
                         (*i)++;
                         forward++;
@@ -149,7 +149,7 @@ tokp gettok()
                 if (u8seq_len < 2) {
                         *data = *forward++;
                         *(data + 1) = '\0';
-                        // printf("[%d]\tdata: %s, u8seqlen: %d\n", __LINE__, data, u8seq_len);
+                        printf("[%d]\tdata: %s, u8seqlen: %d\n", __LINE__, data, u8seq_len);
                 }
                 else {
                         strncpy(data, u8seq, u8seq_len);
