@@ -157,6 +157,24 @@ static void node_doctype()
         tok_free(doctype_type_tok);
 }
 
+domnodep newnode(domnodep prev)
+{
+        domnodep ret = calloc(1, sizeof(domnode_t));
+
+        // find parent
+        if (prev && prev->depth >= _level && prev->parent) prev = prev->parent;
+        if (prev->closed == -1)
+                printf("Syntax error at line %d: xxx is self closed and should not have child\n", line);
+        ret->parent = prev;
+
+        ret->depth = _level;
+        // if new node's level is lte than the prev node
+        // close any prev node that isn't closed
+        // if (parent && parent->depth >= _level)
+
+        return ret;
+}
+
 static void delim(tokp tok)
 {
         int delimlen = *(int *)tok->data;
