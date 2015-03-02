@@ -18,7 +18,7 @@ enum {
 
 tokp gettok();
 void tok_free(tokp tok);
-void lexer_init(char *);
+void lexer_init(char *input, long fsize);
 void lexer_free();
 void jadec_pool_release(int);
 #endif

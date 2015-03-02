@@ -26,10 +26,10 @@ static void node();
 static void delim(tokp);
 static void parsetok();
 
-void parse(char *in, FILE *output)
+void parse(char *in, long fsize, FILE *output)
 {
         _output = output;
-        lexer_init(in);
+        lexer_init(in, fsize);
         while(1) {
                 parsetok();
                 jadec_pool_release(0);
@@ -46,6 +46,7 @@ static void parsetok()
 
         switch (tok->type) {
                 case tok_id:
+                // case tok_glyph:
                         // doctype
                         if (strcmp(tok->data, "doctype") >= 0)
                                 node_doctype();
@@ -86,7 +87,7 @@ static void parsetok()
  */
 static void node()
 {
-        printf("[%d] New dom node\n", __LINE__);
+        printf("[%d]\tNew dom node\n", __LINE__);
 }
 
 static void node_doctype()

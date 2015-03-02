@@ -6,15 +6,16 @@
 #include "jadec.h"
 #include "lexer.h"
 
-static unsigned short u8seq_len;
+static long _fsize;
+static short u8seq_len;
 static char *cur = NULL, *forward = NULL;
 static char *_in;
 // current utf8 seq
 static char *u8seq;
 
-// static long _loadbuf(char *curbuf);
-// static char _advance();
 static tokp tok;
+static inline char nextchar();
+static inline unsigned short advance();
 
 
 void *jadec_pool;
@@ -48,38 +49,47 @@ void jadec_pool_release(int i)
         pool_cur = i;
 }
 
-/**
- *      Advance input and return the read utf8 seq length
- */
-static unsigned short advance()
+// advance input and return the read utf8 seq length
+static inline unsigned short advance()
 {
-        static unsigned short mask[] = {192, 224, 240};
         u8seq = forward;
         char c = *++forward;
         unsigned short i, j;
 
-        if (c == EOF)
-            return 0;
+        if (_fsize < 1) {
+                u8seq_len = -1;
+                return 0;
+        }
 
         i = 0;
-        if ((c & mask[0]) == mask[0]) i++;
-        if ((c & mask[1]) == mask[1]) i++;
-        if ((c & mask[2]) == mask[2]) i++;
+        // utf8 first byte patter mask: 192 224 240
+        if ((c & 192) == 192) i++;
+        if ((c & 224) == 224) i++;
+        if ((c & 240) == 240) i++;
 
         j = 0;
         while (j < i) {
             j++;
-            forward++;
+            nextchar();
         }
 
         u8seq_len = i + 1;
         return i + 1;
 }
 
-void lexer_init(char *input)
+// test EOF and get next char
+static inline char nextchar()
+{
+        if (_fsize < 1) return EOF;
+        _fsize--;
+        return *++forward;
+}
+
+void lexer_init(char *input, long fsize)
 {
         tok = calloc(1, sizeof(tok_t));
         _in = input;
+        _fsize = fsize;
         cur = forward = input;
         pool_init();
 }
@@ -95,11 +105,10 @@ tokp gettok()
         // printf("[%d]\tu8seq_len: %d\n", __LINE__, u8seq_len);
         // id
         if (u8seq_len > 1 || isalnum(*forward)) {
-                do {advance();}
+                do advance();
                 while ((u8seq_len == 1 && !isspace(*forward)) ||
                         u8seq_len > 1);
                 int idlen = forward - cur;
-                // printf("idlen: %d\n", idlen);
                 char *idstr = pool_alloc(idlen + 1);
                 strncpy(idstr, cur, idlen);
                 *(idstr + idlen) = '\0';
@@ -108,7 +117,6 @@ tokp gettok()
                 tok->data = idstr;
 
                 cur = forward;
-                // printf("cur and forward is @[%c]\n", *cur);
                 forward--;
         }
 
@@ -118,7 +126,7 @@ tokp gettok()
                 *i = 1;
                 do {
                         (*i)++;
-                        forward++;
+                        nextchar();
                 } while (isblank(*forward));
                 tok->type = tok_delim;
                 tok->data = i;
@@ -130,16 +138,18 @@ tokp gettok()
         // Windows line feed
         else if (*forward == '\r' && *forward++ == '\n') {
                 tok->type = tok_lf;
-                forward++;
+                nextchar();
         }
         // Unix line feed
         else if (*forward == '\n') {
                 tok->type = tok_lf;
-                forward++;
+                nextchar();
         }
 
         // eof
-        else if (*forward == EOF) {
+        else if (u8seq_len == -1 ||
+                _fsize > 1 ||
+                *forward == EOF) {
                 tok->type = tok_eof;
         }
 
@@ -147,7 +157,8 @@ tokp gettok()
                 tok->type = tok_glyph;
                 char *data = pool_alloc(u8seq_len + 1);
                 if (u8seq_len < 2) {
-                        *data = *forward++;
+                        *data = *forward;
+                        nextchar();
                         *(data + 1) = '\0';
                         printf("[%d]\tdata: %s, u8seqlen: %d\n", __LINE__, data, u8seq_len);
                 }
@@ -163,25 +174,8 @@ tokp gettok()
         return tok;
 }
 
-/*
-// two-buffer lookahead
-static long _loadbuf(char *curbuf)
-{
-        size_t readlen = 0;
-
-        if (curbuf == NULL) curbuf = malloc(JADEC_BUF_LEN);
-        readlen = fread(curbuf, 1, JADEC_BUF_LEN - 1, _in);
-        // eof
-        if (!readlen && feof(_in))
-                return -1;
-        *(curbuf + readlen) = -1;
-        return readlen;
-}
-*/
-
 void tok_free(tokp tok)
 {
         if (!tok) return;
-        // free(tok->data);
         free(tok);
 }
