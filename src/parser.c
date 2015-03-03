@@ -6,6 +6,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "doctype.h"
+#include "pool.h"
 
 // current line
 static int line = 1;
@@ -17,21 +18,23 @@ static int _level = 0;
 // parent dom node
 static domnodep _prev_node = NULL;
 static domnodep _node = NULL;
+static poolp _node_pool;
 
 // get doctype string from type
 static const char *doctypestr(char *);
 // doctype node
 static void node_doctype();
 static void node();
-// delim tok
-static void delim(tokp);
+static void delim(tokp);                        // tok_delim: [ \t]
 static void parsetok();
-static void closenode(domnodep node);
+static void close_node(domnodep node);
+static domnodep new_node(char *type);
 
 void parse(char *in, long fsize, FILE *output)
 {
         _output = output;
         lexer_init(in, fsize);
+        _node_pool = pool_create(256);
         while(1) {
                 parsetok();
                 jadec_pool_release(0);
@@ -39,6 +42,7 @@ void parse(char *in, long fsize, FILE *output)
         }
 
         tok_free(tok);
+        pool_release(_node_pool);
         lexer_free();
 }
 
@@ -50,8 +54,10 @@ static void parsetok()
                 case tok_id:
                 // case tok_glyph:
                         // doctype
-                        if (strcmp(tok->data, "doctype") >= 0)
+                        if (strcmp(tok->data, "doctype") >= 0) {
+                                new_node(tok->data);
                                 node_doctype();
+                        }
                         else {
                                 node();
                                 tok = gettok();
@@ -90,7 +96,7 @@ static void parsetok()
  */
 static void node()
 {
-        printf("[%d]\tNew dom node\n", __LINE__);
+        printf("[%d]\tNew dom node, type %s at level %d\n", __LINE__, (char *)tok->data, _level);
 }
 
 static void node_doctype()
@@ -151,32 +157,49 @@ static void node_doctype()
 
         // got a type
         const char *d = doctypestr(doctype_type_tok->data);
-        if (d == NULL) {
+        if (d == NULL)
                 fprintf(_output, "<!DOCTYPE %s>\n", (char *)doctype_type_tok->data);
-                return;
-        }
-        fprintf(_output, "%s\n", d);
+        else
+                fprintf(_output, "%s\n", d);
         tok_free(doctype_space_tok);
         tok_free(doctype_type_tok);
 }
 
-domnodep newnode(char *type)
+static domnodep new_node(char *type)
 {
-        domnodep ret = calloc(1, sizeof(domnode_t));
+        domnodep ret = pool_alloc(_node_pool, sizeof(domnode_t));
         domnodep _prev = _prev_node;
 
         // find parent
-        if (_prev && _prev->depth >= _level && _prev->parent)
-                _prev = _prev->parent;
-        if (_prev->closed == -1)
-                printf("Syntax error in line %d: %s is self closed and should not \
-contain child\n", line, _prev->type);
+        if (_prev) {
+                if (_prev->depth >= _level && _prev->parent)
+                        _prev = _prev->parent;
+                if (_prev->closed == -1)
+                        printf("Syntax error in line %d: %s is self closed and should not \
+contain any child\n", line, _prev->type);
+        }
         ret->parent = _prev;
 
         ret->depth = _level;
-        ret->closed = 0;
 
-        ret->type = malloc(strlen(type) + 1);
+        // test for self closing tags
+        if (!strcmp("doctype", type) || !strcmp("br", type) ||
+                !strcmp("img", type) || !strcmp("input", type) ||
+                !strcmp("area", type) || !strcmp("col", type) ||
+                !strcmp("base", type) || !strcmp("link", type) ||
+                !strcmp("hr", type) || !strcmp("embed", type) ||
+                !strcmp("keygen", type) || !strcmp("meta", type) ||
+                !strcmp("param", type) || !strcmp("wrb", type) ||
+                !strcmp("track", type) || !strcmp("source", type) ||
+                !strcmp("command", type)
+        ) {
+                printf("[%d]\tself closing tag\n", __LINE__);
+                ret->closed = 1;
+        }
+        else
+                ret->closed = 0;
+
+        ret->type = pool_alloc(_node_pool, strlen(type) + 1);
         strcpy(ret->type, type);
         *(ret->type + strlen(type) + 1) = '\0';
 
@@ -184,16 +207,18 @@ contain child\n", line, _prev->type);
         // close any prev node that isn't closed
         _prev = _prev_node;
         while (_prev && _level <= _prev->depth) {
-                closenode(_prev);
+                close_node(_prev);
                 _prev = _prev->parent;
         }
 
         _prev_node = _node;
         _node = ret;
+        printf("[%d]\tnew node - type: %s, depth: %d, closed: %d, parent: %p\n",
+                __LINE__, ret->type, ret->depth, ret->closed, ret->parent);
         return ret;
 }
 
-static void closenode(domnodep node)
+static void close_node(domnodep node)
 {
         switch(node->closed) {
                 case 0:

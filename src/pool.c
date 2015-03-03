@@ -2,21 +2,22 @@
 #include "pool.h"
 #include "jadec.h"
 
-poolp pool_create()
+poolp pool_create(size_t s)
 {
         poolp pool = calloc(1, sizeof(pool_t));
-        pool->addr = malloc(JADEC_POOL_SIZE);
+        pool->addr = malloc(s);
         if (!pool->addr) return NULL;
         pool->cur = 0;
-        pool->size = JADEC_POOL_SIZE;
+        pool->size = s;
         return pool;
 }
 
 void *pool_alloc(poolp pool, size_t s)
 {
         if (pool->cur + s >= pool->size) {
-                pool = realloc(pool, pool->size + JADEC_POOL_SIZE);
-                pool->size += JADEC_POOL_SIZE;
+                pool->addr = realloc(pool->addr,
+                        pool->size + pool->size / 2);
+                pool->size += pool->size / 2;
         }
 
         void *ret = pool->addr + pool->cur;
