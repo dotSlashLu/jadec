@@ -7,7 +7,7 @@
 #define JADEC_MAX_PROP_LEN 16
 #define JADEC_MAX_PROP_VAL_LEN 1024
 #define JADEC_MAX_DOCTYPE_LEN 110
-// token name buffer
+// mem pool initial size
 #define JADEC_POOL_SIZE 2048
 
 #endif

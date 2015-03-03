@@ -1,6 +1,6 @@
 CC=gcc
 CCFLAGS=-g -Wall -I..
-TARGETS=parser.c lexer.c jadec.c
+TARGETS=parser.c lexer.c jadec.c pool.c
 
 jadec.out:
 	$(CC) $(CCFLAGS) $(TARGETS) -o jadec.out

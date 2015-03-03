@@ -15,7 +15,8 @@ static FILE *_output;
 // current level
 static int _level = 0;
 // parent dom node
-static domnodep _parent_node = NULL;
+static domnodep _prev_node = NULL;
+static domnodep _node = NULL;
 
 // get doctype string from type
 static const char *doctypestr(char *);
@@ -25,6 +26,7 @@ static void node();
 // delim tok
 static void delim(tokp);
 static void parsetok();
+static void closenode(domnodep node);
 
 void parse(char *in, long fsize, FILE *output)
 {
@@ -74,7 +76,8 @@ static void parsetok()
                         break;
 
                 default:
-                        // printf("[%d]Unimplemented tok: %d, data: %s\n", __LINE__, tok->type, *(char *)tok->data);
+                        printf("[%d]Unimplemented tok: %d, data: %s\n",
+                        __LINE__, tok->type, (char *)tok->data);
                         break;
         }
 }
@@ -157,22 +160,55 @@ static void node_doctype()
         tok_free(doctype_type_tok);
 }
 
-domnodep newnode(domnodep prev)
+domnodep newnode(char *type)
 {
         domnodep ret = calloc(1, sizeof(domnode_t));
+        domnodep _prev = _prev_node;
 
         // find parent
-        if (prev && prev->depth >= _level && prev->parent) prev = prev->parent;
-        if (prev->closed == -1)
-                printf("Syntax error at line %d: xxx is self closed and should not have child\n", line);
-        ret->parent = prev;
+        if (_prev && _prev->depth >= _level && _prev->parent)
+                _prev = _prev->parent;
+        if (_prev->closed == -1)
+                printf("Syntax error in line %d: %s is self closed and should not \
+contain child\n", line, _prev->type);
+        ret->parent = _prev;
 
         ret->depth = _level;
+        ret->closed = 0;
+
+        ret->type = malloc(strlen(type) + 1);
+        strcpy(ret->type, type);
+        *(ret->type + strlen(type) + 1) = '\0';
+
         // if new node's level is lte than the prev node
         // close any prev node that isn't closed
-        // if (parent && parent->depth >= _level)
+        _prev = _prev_node;
+        while (_prev && _level <= _prev->depth) {
+                closenode(_prev);
+                _prev = _prev->parent;
+        }
 
+        _prev_node = _node;
+        _node = ret;
         return ret;
+}
+
+static void closenode(domnodep node)
+{
+        switch(node->closed) {
+                case 0:
+                        fprintf(_output, "</%s>", node->type);
+                        node->closed = 1;
+                        break;
+
+                case 1:
+                        fputs("Tried to close closed node\n", stdout);
+                        break;
+
+                default:
+                        return;
+                        break;
+        }
 }
 
 static void delim(tokp tok)

@@ -10,10 +10,8 @@ typedef struct domnode_prop {
 // node
 typedef struct domnode {
         int depth;
-        char *name;
+        char *type;
         short closed;
-        // char *text;
-        // propp *proplist;
         struct domnode *parent;
 } domnode_t, *domnodep;
 
