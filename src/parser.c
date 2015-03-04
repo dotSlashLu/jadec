@@ -101,16 +101,39 @@ static void node()
         printf("[%d]\tNew dom node, type %s at level %d\n",
         __LINE__, (char *)tok->data, _level);
         fprintf(_output, "<%s ", (char *)tok->data);
-        tok = gettok();
-        switch (tok->type) {
-                case '.':
-                        printf("[%d]\tbgn class\n", __LINE__);
-                        break;
-                case '#':
-                        printf("[%d]\tbgn id\n", __LINE__);
-                        break;
+        char *class = malloc(256);
+        char *id = malloc(256);
+
+        do {
+                tok = gettok();
+                switch (tok->type) {
+                        case '.':
+                                printf("[%d]\tbgn class\n", __LINE__);
+                                // class name
+                                tok = gettok();
+                                printf("class name: %s\n", (char *)tok->data);
+                                if (strlen(class) > 0)
+                                        strcat(class, " ");
+                                strcat(class, tok->data);
+                                break;
+                        case '#':
+                                printf("[%d]\tbgn id\n", __LINE__);
+                                if (strlen(id) == 0)
+                                        strcpy(id, tok->data);
+                                else
+                                        printf("Syntax error: only one id can be assigned.\n");
+                                // id name
+                                break;
+                }
         }
+        while (tok->type != tok_delim &&        // begin literal
+                tok->type != '(' &&             // begin attr list
+                tok->type != '|' &&             // begin text node
+                tok->type != tok_id);           // begin new node
         new_node(tok->data);
+        printf("class = \"%s\"", class);
+        free(class);
+        free(id);
 }
 
 static void node_doctype()
