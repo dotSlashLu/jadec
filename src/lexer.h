@@ -12,7 +12,6 @@ enum {
         // \r?\n
         tok_lf,
         tok_delim       = 259,
-        tok_level,
         tok_eof
 };
 

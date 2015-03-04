@@ -14,7 +14,7 @@ static char *_in;
 static char *u8seq;
 
 static tokp tok;
-static inline char nextchar();
+static inline char getchr();
 static inline unsigned short advance();
 
 
@@ -53,7 +53,7 @@ void jadec_pool_release(int i)
 static inline unsigned short advance()
 {
         u8seq = forward;
-        char c = *++forward;
+        char c = getchr();
         unsigned short i, j;
 
         if (_fsize < 1) {
@@ -70,7 +70,7 @@ static inline unsigned short advance()
         j = 0;
         while (j < i) {
             j++;
-            nextchar();
+            getchr();
         }
 
         u8seq_len = i + 1;
@@ -78,11 +78,17 @@ static inline unsigned short advance()
 }
 
 // test EOF and get next char
-static inline char nextchar()
+static inline char getchr()
 {
         if (_fsize < 1) return EOF;
         _fsize--;
         return *++forward;
+}
+
+static inline void rewindchr(int i)
+{
+        _fsize += i;
+        forward -= i;
 }
 
 void lexer_init(char *input, long fsize)
@@ -101,12 +107,12 @@ void lexer_free(FILE *input)
 
 tokp gettok()
 {
-        advance();
-        // printf("[%d]\tu8seq_len: %d\n", __LINE__, u8seq_len);
+        // printf("\n\n\n---gettok---\n");
         // id
         if (u8seq_len > 1 || isalnum(*forward)) {
+                // printf("[%d]\tid\n", __LINE__);
                 do advance();
-                while ((u8seq_len == 1 && !isspace(*forward)) ||
+                while ((u8seq_len == 1 && isalnum(*forward)) ||
                         u8seq_len > 1);
                 int idlen = forward - cur;
                 char *idstr = pool_alloc(idlen + 1);
@@ -117,57 +123,62 @@ tokp gettok()
                 tok->data = idstr;
 
                 cur = forward;
-                forward--;
+                // rewindchr(1);
         }
 
         // [ \t]
         else if (isblank(*forward)) {
+                // printf("[%d]\tblank\n", __LINE__);
                 int *i = pool_alloc(sizeof(int));
-                *i = 1;
+                *i = 0;
                 do {
                         (*i)++;
-                        nextchar();
+                        cur = forward;
+                        advance();
                 } while (isblank(*forward));
                 tok->type = tok_delim;
                 tok->data = i;
-
-                cur = forward;
-                forward--;
         }
 
         // Windows line feed
-        else if (*forward == '\r' && *forward++ == '\n') {
+        else if (*forward == '\r' && getchr() == '\n') {
                 tok->type = tok_lf;
-                nextchar();
+                getchr();
+                cur = forward;
         }
         // Unix line feed
         else if (*forward == '\n') {
+                // printf("[%d]\tlf\n", __LINE__);
                 tok->type = tok_lf;
-                nextchar();
+                getchr();
+                cur = forward;
         }
 
         // eof
         else if (u8seq_len == -1 ||
-                _fsize > 1 ||
+                _fsize < 1 ||
                 *forward == EOF) {
                 tok->type = tok_eof;
         }
 
         else {
-                tok->type = tok_glyph;
-                char *data = pool_alloc(u8seq_len + 1);
-                if (u8seq_len < 2) {
-                        *data = *forward;
-                        nextchar();
-                        *(data + 1) = '\0';
-                        printf("[%d]\tdata: %s, u8seqlen: %d\n", __LINE__, data, u8seq_len);
-                }
-                else {
-                        strncpy(data, u8seq, u8seq_len);
-                        printf("glyph len %d\n", u8seq_len);
-                        *(data + u8seq_len + 1) = '\0';
-                        advance();
-                }
+                // printf("[%d]\tglyph, u8seq_len: %d\n", __LINE__, u8seq_len);
+                tok->type = *forward;
+                // char *data = pool_alloc(u8seq_len + 1);
+                // if (u8seq_len < 2) {
+                //         *data = *forward;
+                //         getchr();
+                //         *(data + 1) = '\0';
+                //         // printf("[%d]\tdata: %s, u8seqlen: %d\n", __LINE__, data, u8seq_len);
+                // }
+                // else {
+                //         strncpy(data, u8seq, u8seq_len);
+                //         // printf("glyph len %d\n", u8seq_len);
+                //         *(data + u8seq_len + 1) = '\0';
+                //         advance();
+                // }
+                advance();
+                cur = forward;
         }
 
         // printf("[%d]\ttok - type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);

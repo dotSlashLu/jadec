@@ -38,7 +38,10 @@ void parse(char *in, long fsize, FILE *output)
         while(1) {
                 parsetok();
                 jadec_pool_release(0);
-                if (!tok || tok->type == tok_eof) break;
+                if (!tok || tok->type == tok_eof) {
+                        printf("[%d]\tEOF\n", __LINE__);
+                        break;
+                }
         }
 
         tok_free(tok);
@@ -54,7 +57,7 @@ static void parsetok()
                 case tok_id:
                 // case tok_glyph:
                         // doctype
-                        if (strcmp(tok->data, "doctype") >= 0) {
+                        if (strcmp(tok->data, "doctype") == 0) {
                                 new_node(tok->data);
                                 node_doctype();
                         }
@@ -66,24 +69,23 @@ static void parsetok()
 
                 case tok_lf:
                         line++;
-                        printf("[%d]\tnew line: %d\n", __LINE__, line);
                         tok = gettok();
                         break;
 
                 case tok_delim:
-                        printf("[%d]\ttok_delim, data: %d\n", __LINE__, *(int *)(tok->data));
                         _level = *(int *)tok->data;
                         tok = gettok();
 
                         break;
 
                 case tok_eof:
+                        printf("[%d]\tEOF\n", __LINE__);
                         return;
                         break;
 
                 default:
-                        printf("[%d]Unimplemented tok: %d, data: %s\n",
-                        __LINE__, tok->type, (char *)tok->data);
+                        // printf("[%d]Unimplemented tok: %d, data: %s\n",
+                        // __LINE__, tok->type, (char *)tok->data);
                         break;
         }
 }
@@ -96,7 +98,19 @@ static void parsetok()
  */
 static void node()
 {
-        printf("[%d]\tNew dom node, type %s at level %d\n", __LINE__, (char *)tok->data, _level);
+        printf("[%d]\tNew dom node, type %s at level %d\n",
+        __LINE__, (char *)tok->data, _level);
+        fprintf(_output, "<%s ", (char *)tok->data);
+        tok = gettok();
+        switch (tok->type) {
+                case '.':
+                        printf("[%d]\tbgn class\n", __LINE__);
+                        break;
+                case '#':
+                        printf("[%d]\tbgn id\n", __LINE__);
+                        break;
+        }
+        new_node(tok->data);
 }
 
 static void node_doctype()
@@ -174,27 +188,28 @@ static domnodep new_node(char *type)
         if (_prev) {
                 if (_prev->depth >= _level && _prev->parent)
                         _prev = _prev->parent;
-                if (_prev->closed == -1)
+                /*
+                if (_prev->depth < _level && _prev->closed == -1)
                         printf("Syntax error in line %d: %s is self closed and should not \
 contain any child\n", line, _prev->type);
+                */
         }
         ret->parent = _prev;
 
         ret->depth = _level;
 
         // test for self closing tags
-        if (!strcmp("doctype", type) || !strcmp("br", type) ||
-                !strcmp("img", type) || !strcmp("input", type) ||
-                !strcmp("area", type) || !strcmp("col", type) ||
-                !strcmp("base", type) || !strcmp("link", type) ||
-                !strcmp("hr", type) || !strcmp("embed", type) ||
-                !strcmp("keygen", type) || !strcmp("meta", type) ||
-                !strcmp("param", type) || !strcmp("wrb", type) ||
-                !strcmp("track", type) || !strcmp("source", type) ||
-                !strcmp("command", type)
+#define cmp(str)(!strcmp(str, type))
+        if (cmp("doctype") || cmp("br") || cmp("img") ||
+                cmp("input") || cmp("area") || cmp("col") ||
+                cmp("base") || cmp("link") || cmp("hr") ||
+                cmp("embed") || cmp("keygen") || cmp("meta") ||
+                cmp("param") || cmp("wrb") || cmp("track") ||
+                cmp("source") || cmp("command")
         ) {
-                printf("[%d]\tself closing tag\n", __LINE__);
-                ret->closed = 1;
+#undef cmp
+                // printf("[%d]\tself closing tag\n", __LINE__);
+                ret->closed = -1;
         }
         else
                 ret->closed = 0;
@@ -206,12 +221,13 @@ contain any child\n", line, _prev->type);
         // if new node's level is lte than the prev node
         // close any prev node that isn't closed
         _prev = _prev_node;
-        while (_prev && _level <= _prev->depth) {
+        while (_prev && _prev->depth <= _level) {
                 close_node(_prev);
                 _prev = _prev->parent;
         }
 
-        _prev_node = _node;
+        if (_prev_node) _prev_node = _node;
+        else _prev_node = ret;
         _node = ret;
         printf("[%d]\tnew node - type: %s, depth: %d, closed: %d, parent: %p\n",
                 __LINE__, ret->type, ret->depth, ret->closed, ret->parent);
@@ -226,8 +242,11 @@ static void close_node(domnodep node)
                         node->closed = 1;
                         break;
 
-                case 1:
-                        fputs("Tried to close closed node\n", stdout);
+                case -1:
+                        if (node->depth == _level) return;
+                        else
+                                printf("Syntax error in line %d: %s is self closed and should not \
+contain any child\n", line, node->type);
                         break;
 
                 default:
