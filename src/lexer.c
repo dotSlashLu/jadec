@@ -82,6 +82,7 @@ static inline char getchr()
 {
         if (_fsize < 1) return EOF;
         _fsize--;
+        // printf("[%d]\tremaining fsize: %d\n", __LINE__, _fsize);
         return *++forward;
 }
 
@@ -138,16 +139,12 @@ tokp gettok()
                 } while (isblank(*forward));
                 tok->type = tok_delim;
                 tok->data = i;
-        }
-
-        // Windows line feed
-        else if (*forward == '\r' && getchr() == '\n') {
-                tok->type = tok_lf;
-                getchr();
                 cur = forward;
         }
-        // Unix line feed
-        else if (*forward == '\n') {
+
+        // line feed
+        else if ((*forward == '\r' && getchr() == '\n') ||
+                *forward == '\n') {
                 // printf("[%d]\tlf\n", __LINE__);
                 tok->type = tok_lf;
                 getchr();
@@ -155,8 +152,8 @@ tokp gettok()
         }
 
         // eof
-        else if (u8seq_len == -1 ||
-                _fsize < 1 ||
+        else if (_fsize < 1 ||
+                u8seq_len == -1 ||
                 *forward == EOF) {
                 tok->type = tok_eof;
         }

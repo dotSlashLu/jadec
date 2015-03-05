@@ -7,6 +7,7 @@
 #include "parser.h"
 #include "doctype.h"
 #include "pool.h"
+#include "btree.h"
 
 // current line
 static int line = 1;
@@ -39,7 +40,7 @@ void parse(char *in, long fsize, FILE *output)
                 parsetok();
                 jadec_pool_release(0);
                 if (!tok || tok->type == tok_eof) {
-                        printf("[%d]\tEOF\n", __LINE__);
+                        printf("\n---[%d]\tEOF---\n", __LINE__);
                         break;
                 }
         }
@@ -55,7 +56,6 @@ static void parsetok()
 
         switch (tok->type) {
                 case tok_id:
-                // case tok_glyph:
                         // doctype
                         if (strcmp(tok->data, "doctype") == 0) {
                                 new_node(tok->data);
@@ -90,48 +90,81 @@ static void parsetok()
         }
 }
 
-
-/**
- * *node*      ->  *nodeName*
- *                 *nodeAttrList*
- *                 *nodeCtnt*
- */
 static void node()
 {
-        printf("[%d]\tNew dom node, type %s at level %d\n",
-        __LINE__, (char *)tok->data, _level);
-        fprintf(_output, "<%s ", (char *)tok->data);
+        // printf("[%d]\tNew dom node, type %s at level %d\n",
+        // __LINE__, (char *)tok->data, _level);
+        bt_nodeptr root = bt_init();
         char *class = malloc(256);
         char *id = malloc(256);
 
+        // node type
+        char *type = malloc(strlen(tok->data) + 1);
+        strcpy(type, tok->data);
+
+        // attrs
+        tok = gettok();
         do {
-                tok = gettok();
+                // printf("[%d]\ttok type: %d\n", __LINE__, tok->type);
                 switch (tok->type) {
+                        // class
                         case '.':
                                 printf("[%d]\tbgn class\n", __LINE__);
                                 // class name
                                 tok = gettok();
-                                printf("class name: %s\n", (char *)tok->data);
-                                if (strlen(class) > 0)
-                                        strcat(class, " ");
+                                if (strlen(class) > 0) strcat(class, " ");
                                 strcat(class, tok->data);
+                                bt_install(root, "class", class);
                                 break;
+
+                        // id
                         case '#':
                                 printf("[%d]\tbgn id\n", __LINE__);
+                                tok = gettok();
                                 if (strlen(id) == 0)
                                         strcpy(id, tok->data);
                                 else
-                                        printf("Syntax error: only one id can be assigned.\n");
-                                // id name
+                                        printf("Syntax error: \
+only one id can be assigned.\n");
+                                printf("[%d]\tid: %s\n", __LINE__, id);
+                                bt_install(root, "id", id);
+                                break;
+
+                        // attr list
+                        // id (=)
+                        case '(':
+                                printf("[%d]\tattr list\n", __LINE__);
+                                do {
+                                        tok = gettok();
+                                        switch(tok->type) {
+                                        }
+                                }
+                                while (tok->type != ')');
+
+                                if (tok->type == tok_id) {
+
+                                }
+                                break;
+
+                        default:
+                                // printf("[%d]\ttok type: %d\n", __LINE__, tok->type);
                                 break;
                 }
+                tok = gettok();
         }
         while (tok->type != tok_delim &&        // begin literal
-                tok->type != '(' &&             // begin attr list
                 tok->type != '|' &&             // begin text node
-                tok->type != tok_id);           // begin new node
-        new_node(tok->data);
-        printf("class = \"%s\"", class);
+                tok->type != tok_id &&          // new node
+                tok->type != tok_eof);          // eof
+
+        new_node(type);
+        fprintf(_output, "[%d]\t<%s \n", __LINE__, type);
+        printf("[%d]class = \"%s\"\n", __LINE__, class);
+        printf("[%d]id = \"%s\"\n", __LINE__, id);
+        // printf("[%d]\ttok type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
+
+        bt_free(root);
+        free(type);
         free(class);
         free(id);
 }
@@ -164,7 +197,10 @@ static void node_doctype()
         {
                 fputs("<!DOCTYPE", _output);
                 delim(doctype_space_tok);
-                fputs((char *)doctype_type_tok->data, _output);
+                if (doctype_type_tok->type == tok_id)
+                        fputs((char *)doctype_type_tok->data, _output);
+                else
+                        fprintf(_output, "%c", doctype_type_tok->type);
                 tok_free(doctype_space_tok);
                 tok_free(doctype_type_tok);
                 do {
@@ -209,15 +245,11 @@ static domnodep new_node(char *type)
 
         // find parent
         if (_prev) {
-                if (_prev->depth >= _level && _prev->parent)
-                        _prev = _prev->parent;
-                /*
-                if (_prev->depth < _level && _prev->closed == -1)
-                        printf("Syntax error in line %d: %s is self closed and should not \
-contain any child\n", line, _prev->type);
-                */
+                if (_prev->depth < _level) ret->parent = _prev;
+                else
+                        while (_prev && _prev->depth < _level && _prev->parent)
+                                _prev = _prev->parent;
         }
-        ret->parent = _prev;
 
         ret->depth = _level;
 
@@ -229,11 +261,9 @@ contain any child\n", line, _prev->type);
                 cmp("embed") || cmp("keygen") || cmp("meta") ||
                 cmp("param") || cmp("wrb") || cmp("track") ||
                 cmp("source") || cmp("command")
-        ) {
+        )
 #undef cmp
-                // printf("[%d]\tself closing tag\n", __LINE__);
                 ret->closed = -1;
-        }
         else
                 ret->closed = 0;
 

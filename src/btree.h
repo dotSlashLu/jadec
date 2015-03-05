@@ -7,12 +7,12 @@ typedef struct node {
         char *key;
         unsigned long hash;
         void *val;
-} node_t, *nodeptr;
+} bt_node_t, *bt_nodeptr;
 
-nodeptr bt_init();
-nodeptr bt_install(nodeptr root, char *key, void *val);
-nodeptr bt_find(nodeptr from, char *key);
-void    bt_free(nodeptr root);
+bt_nodeptr bt_init();
+bt_nodeptr bt_install(bt_nodeptr root, char *key, void *val);
+bt_nodeptr bt_find(bt_nodeptr from, char *key);
+void    bt_free(bt_nodeptr root);
 unsigned long bt_hash(char *str);
 
 #endif

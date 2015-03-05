@@ -4,16 +4,16 @@
 
 #include "btree.h"
 
-static nodeptr _setup_node(char *key, void *val, unsigned long hash);
+static bt_nodeptr _setup_node(char *key, void *val, unsigned long hash);
 
-nodeptr bt_init()
+bt_nodeptr bt_init()
 {
-        nodeptr n = NULL;
+        bt_nodeptr n = NULL;
         n = bt_install(n, "", "");
         return n;
 }
 
-nodeptr bt_install(nodeptr n, char *key, void *val)
+bt_nodeptr bt_install(bt_nodeptr n, char *key, void *val)
 {
         unsigned long hash = bt_hash(key);
         while (n != NULL) {
@@ -44,9 +44,9 @@ nodeptr bt_install(nodeptr n, char *key, void *val)
         return n;
 }
 
-static nodeptr _setup_node(char *key, void *val, unsigned long hash)
+static bt_nodeptr _setup_node(char *key, void *val, unsigned long hash)
 {
-        nodeptr n = calloc(1, sizeof(node_t));
+        bt_nodeptr n = calloc(1, sizeof(bt_node_t));
         if (n == NULL) return NULL;
         n->key = key;
         n->val = val;
@@ -54,7 +54,7 @@ static nodeptr _setup_node(char *key, void *val, unsigned long hash)
         return n;
 }
 
-nodeptr bt_find(nodeptr n, char *key)
+bt_nodeptr bt_find(bt_nodeptr n, char *key)
 {
         unsigned long hash = bt_hash(key);
         while (n != NULL) {
@@ -67,7 +67,7 @@ nodeptr bt_find(nodeptr n, char *key)
         return NULL;
 }
 
-void bt_free(nodeptr n)
+void bt_free(bt_nodeptr n)
 {
         if (n == NULL) return;
         bt_free(n->L);
