@@ -13,3 +13,5 @@ memtest: clean jadec.out
 
 clean:
 	rm -f *.out *.o *.a
+
+.PHONY: test memtest clean

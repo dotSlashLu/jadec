@@ -30,12 +30,15 @@ static void delim(tokp);                        // tok_delim: [ \t]
 static void parsetok();
 static void close_node(domnodep node);
 static domnodep new_node(char *type);
+static void node_attr_list(bt_nodeptr attr_tree_root, bt_nodeptr *attr_list);
+static void node_attr(bt_nodeptr attr_tree_root, bt_nodeptr *attr_list);
+static inline void skip_blanks();
 
 void parse(char *in, long fsize, FILE *output)
 {
         _output = output;
         lexer_init(in, fsize);
-        _node_pool = pool_create(256);
+        _node_pool = pool_create(1024);
         while(1) {
                 parsetok();
                 jadec_pool_release(0);
@@ -84,8 +87,8 @@ static void parsetok()
                         break;
 
                 default:
-                        // printf("[%d]Unimplemented tok: %d, data: %s\n",
-                        // __LINE__, tok->type, (char *)tok->data);
+                        printf("[%d]Unimplemented tok: %d, data: %s\n",
+                        __LINE__, tok->type, (char *)tok->data);
                         break;
         }
 }
@@ -97,7 +100,8 @@ static void node()
         bt_nodeptr root = bt_init();
         char *class = malloc(256);
         char *id = malloc(256);
-
+        bt_nodeptr *attr_list = malloc(sizeof(bt_nodeptr) * JADEC_MAX_PROP);
+        bt_nodeptr *_attr_list = attr_list;
         // node type
         char *type = malloc(strlen(tok->data) + 1);
         strcpy(type, tok->data);
@@ -114,7 +118,7 @@ static void node()
                                 tok = gettok();
                                 if (strlen(class) > 0) strcat(class, " ");
                                 strcat(class, tok->data);
-                                bt_install(root, "class", class);
+                                *(attr_list++) = bt_install(root, "class", class);
                                 break;
 
                         // id
@@ -127,23 +131,12 @@ static void node()
                                         printf("Syntax error: \
 only one id can be assigned.\n");
                                 printf("[%d]\tid: %s\n", __LINE__, id);
-                                bt_install(root, "id", id);
+                                *(attr_list++) = bt_install(root, "id", id);
                                 break;
 
                         // attr list
-                        // id (=)
                         case '(':
-                                printf("[%d]\tattr list\n", __LINE__);
-                                do {
-                                        tok = gettok();
-                                        switch(tok->type) {
-                                        }
-                                }
-                                while (tok->type != ')');
-
-                                if (tok->type == tok_id) {
-
-                                }
+                                node_attr_list(root, attr_list);
                                 break;
 
                         default:
@@ -167,6 +160,58 @@ only one id can be assigned.\n");
         free(type);
         free(class);
         free(id);
+}
+
+static void node_attr_list(bt_nodeptr root, bt_nodeptr *list)
+{
+        printf("[%d]\tattr list\n", __LINE__);
+        tok = gettok();
+        while (tok->type != ')') {
+                node_attr(root, list);
+                tok = gettok();
+        }
+}
+
+static void node_attr(bt_nodeptr root, bt_nodeptr *list)
+{
+        printf("[%d]\tnode attr\n", __LINE__);
+        char *attr = malloc(strlen(tok->data) + 1);
+        strcpy(attr, tok->data);
+
+        switch (tok->type) {
+                case tok_id:
+                        tok = gettok();
+                        skip_blanks();
+
+                        switch (tok->type) {
+                                // id, another attr
+                                case tok_id:
+                                        *(list++) = bt_install(root, attr, attr);
+                                        break;
+
+                                // =, attr val
+                                case '=':
+                                        tok = gettok();
+                                        skip_blanks();
+
+                                        // TODO
+                                        if (tok->type == tok_id) {
+                                        }
+
+                                        if (tok->type == '"')
+                                                // get literal
+                                                ;
+                        }
+
+                        break;
+        }
+}
+
+static inline void skip_blanks()
+{
+        while (tok->type == tok_delim ||
+                tok->type == tok_lf)
+                tok = gettok();
 }
 
 static void node_doctype()
