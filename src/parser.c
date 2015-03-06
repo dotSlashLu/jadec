@@ -38,7 +38,7 @@ void parse(char *in, long fsize, FILE *output)
 {
         _output = output;
         lexer_init(in, fsize);
-        _node_pool = pool_create(1024);
+        _node_pool = pool_create(2048);
         while(1) {
                 parsetok();
                 jadec_pool_release(0);
@@ -166,10 +166,8 @@ static void node_attr_list(bt_nodeptr root, bt_nodeptr *list)
 {
         printf("[%d]\tattr list\n", __LINE__);
         tok = gettok();
-        while (tok->type != ')') {
+        while (tok->type != ')')
                 node_attr(root, list);
-                tok = gettok();
-        }
 }
 
 static void node_attr(bt_nodeptr root, bt_nodeptr *list)
@@ -196,6 +194,7 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
 
                                         // TODO
                                         if (tok->type == tok_id) {
+
                                         }
 
                                         if (tok->type == '"')
@@ -205,6 +204,43 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
 
                         break;
         }
+}
+
+
+static char *get_quoted_literal()
+{
+        int buflen = 1024, i = 0;
+        char *ret = malloc(buflen);
+        tokp escaped_tok;
+#define cpy(len, data) { \
+        if (i + (len) <= buflen) { \
+                strncpy(ret, (char *)(data), (len)); \
+                i += (len); \
+        } \
+        else { \
+                ret = realloc(ret, buflen + buflen / 2); \
+                buflen += buflen / 2; \
+        } \
+}
+        while (tok->type != '"') {
+                if (tok->type < 256 && tok->type != '\\') {
+                        cpy(1, &tok->type);
+                }
+                else if (tok->type == tok_id) cpy(strlen(tok->data), tok->data);
+
+                if (tok->type == '\\') {
+                        escaped_tok = gettok();
+                        if (escaped_tok->type == '"' ||
+                                escaped_tok->type == '\'') {
+                                // TODO
+                                // cpy(1, escaped_tok->type);
+                        }
+                        else {
+                                cpy(1, &tok->type);
+                        }
+                }
+        }
+#undef cpy
 }
 
 static inline void skip_blanks()

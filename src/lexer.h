@@ -8,7 +8,7 @@ typedef struct tok {
 
 enum {
         tok_id          = 256,
-        tok_glyph,
+        // tok_glyph,
         // \r?\n
         tok_lf,
         tok_delim       = 259,
