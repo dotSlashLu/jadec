@@ -11,5 +11,5 @@ configure
 *.a
 
 # autotool
-config.h
+src/config.h
 config.status

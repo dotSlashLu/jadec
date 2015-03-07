@@ -1,5 +1,5 @@
 CC=gcc
-CCFLAGS=-g -Wall -I.. -O3
+CCFLAGS=-g -Wall -O3
 TARGETS=parser.c lexer.c jadec.c pool.c btree.c
 
 jadec.out:

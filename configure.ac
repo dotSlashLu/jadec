@@ -5,4 +5,4 @@ AC_LANG(C)
 pagesize=`getconf PAGESIZE`
 
 AC_SUBST(pagesize, $pagesize)
-AC_OUTPUT(config.h)
+AC_OUTPUT(src/config.h)

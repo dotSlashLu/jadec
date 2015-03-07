@@ -106,6 +106,50 @@ void lexer_free(FILE *input)
         free(jadec_pool);
 }
 
+char *get_quoted_literal(char quote)
+{
+        int buflen = 512, i = 0;
+        char *ret = malloc(buflen);
+#define cpy(len) { \
+        if (i + (len) > buflen) { \
+                ret = realloc(ret, buflen + buflen / 2); \
+                buflen += buflen / 2; \
+        } \
+        while ((len)--) { \
+                *(ret + i) = *(cur + i); \
+                i++; \
+        } \
+}
+
+        while (1) {
+                if (u8seq_len > 1) {
+                        cpy(u8seq_len);
+                        advance();
+                        continue;
+                }
+
+                if (*forward == quote)
+                        break;
+                if (*forward == '\\') {
+                        int escaped_len = advance();
+                        if (u8seq_len == 1 && *forward == quote) {
+                                cur++;
+                                cpy(u8seq_len);
+                        }
+                        u8seq_len += escaped_len;
+                        cpy(u8seq_len);
+                }
+                else cpy(u8seq_len);
+                advance();
+        }
+
+        *(ret + i + 1) = '\0';
+        // eat ending "
+        getchr();
+        return ret;
+#undef cpy
+}
+
 tokp gettok()
 {
         // printf("\n\n\n---gettok---\n");

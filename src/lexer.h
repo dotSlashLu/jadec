@@ -16,6 +16,7 @@ enum {
 };
 
 tokp gettok();
+char *get_quoted_literal(char quotemark);
 void tok_free(tokp tok);
 void lexer_init(char *input, long fsize);
 void lexer_free();

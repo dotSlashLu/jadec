@@ -1,5 +1,5 @@
 DIRS=src
-OUT=*.log *.status *.cache configure config.h
+OUT=*.log *.status *.cache configure
 
 configure:
 	./configure.sh

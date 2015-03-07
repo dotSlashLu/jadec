@@ -125,7 +125,7 @@ static void node()
                         case '#':
                                 printf("[%d]\tbgn id\n", __LINE__);
                                 tok = gettok();
-                                if (strlen(id) == 0)
+                                if (id == NULL || strlen(id) == 0)
                                         strcpy(id, tok->data);
                                 else
                                         printf("Syntax error: \
@@ -152,8 +152,8 @@ only one id can be assigned.\n");
 
         new_node(type);
         fprintf(_output, "[%d]\t<%s \n", __LINE__, type);
-        printf("[%d]class = \"%s\"\n", __LINE__, class);
-        printf("[%d]id = \"%s\"\n", __LINE__, id);
+        printf("[%d]\tclass = \"%s\"\n", __LINE__, class);
+        printf("[%d]\tid = \"%s\"\n", __LINE__, id);
         // printf("[%d]\ttok type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
 
         bt_free(root);
@@ -166,8 +166,11 @@ static void node_attr_list(bt_nodeptr root, bt_nodeptr *list)
 {
         printf("[%d]\tattr list\n", __LINE__);
         tok = gettok();
-        while (tok->type != ')')
+        while (tok->type != ')') {
                 node_attr(root, list);
+                printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
+        }
+        fputs("tok is )! yay!\n", stdout);
 }
 
 static void node_attr(bt_nodeptr root, bt_nodeptr *list)
@@ -184,63 +187,35 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
                         switch (tok->type) {
                                 // id, another attr
                                 case tok_id:
+                                        printf("[%d]\ttok_id\n", __LINE__);
                                         *(list++) = bt_install(root, attr, attr);
                                         break;
 
                                 // =, attr val
                                 case '=':
+                                        printf("[%d]\ttok_=\n", __LINE__);
                                         tok = gettok();
                                         skip_blanks();
-
-                                        // TODO
-                                        if (tok->type == tok_id) {
-
+                                        if (tok->type == '"') {
+                                                // char *val = get_quoted_literal();
+                                                char *val = get_quoted_literal('"');
+                                                printf("[%d]\tval: %s\n", __LINE__, val);
+                                                free(val);
+                                                tok = gettok();
+                                                printf("[%d]\ttok->type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
                                         }
-
-                                        if (tok->type == '"')
-                                                // get literal
-                                                ;
+                                        // TODO
+                                        else if (tok->type == tok_id) {
+                                                printf("[%d]\ttok_id\n", __LINE__);
+                                        }
+                                        break;
                         }
 
                         break;
+                default:
+                        printf("[%d]\ttok type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
+                        break;
         }
-}
-
-
-static char *get_quoted_literal()
-{
-        int buflen = 1024, i = 0;
-        char *ret = malloc(buflen);
-        tokp escaped_tok;
-#define cpy(len, data) { \
-        if (i + (len) <= buflen) { \
-                strncpy(ret, (char *)(data), (len)); \
-                i += (len); \
-        } \
-        else { \
-                ret = realloc(ret, buflen + buflen / 2); \
-                buflen += buflen / 2; \
-        } \
-}
-        while (tok->type != '"') {
-                if (tok->type < 256 && tok->type != '\\') {
-                        cpy(1, &tok->type);
-                }
-                else if (tok->type == tok_id) cpy(strlen(tok->data), tok->data);
-
-                if (tok->type == '\\') {
-                        escaped_tok = gettok();
-                        if (escaped_tok->type == '"' ||
-                                escaped_tok->type == '\'') {
-                                // TODO
-                                // cpy(1, escaped_tok->type);
-                        }
-                        else {
-                                cpy(1, &tok->type);
-                        }
-                }
-        }
-#undef cpy
 }
 
 static inline void skip_blanks()
@@ -401,7 +376,6 @@ static void delim(tokp tok)
 
 static const char *doctypestr(char *type)
 {
-        // will a btree be faster?
         if (strcmp(type, "html") == 0)
                 return JADEC_DOCTYPE_HTML;
         else if (strcmp(type, "xml") == 0)
@@ -410,40 +384,4 @@ static const char *doctypestr(char *type)
                 return JADEC_DOCTYPE_STRICT;
         return NULL;
 }
-
-/*
-static void prop_list()
-{
-        propp prop = calloc(1, sizeof(prop_t));
-        char *name = malloc(MAX_PROP_LEN);
-        int i = 0;
-
-        while (is_alnum(_advance())) {
-                name[i++] = *forward;
-                if (i == MAX_PROP_LEN)
-                        ; // TODO: error: prop name too long
-        }
-
-        while (isspace(*forward)) _advance();
-
-        if (*forward == '=') {
-                char *val = malloc(MAX_PROP_VAL_LEN);
-
-        }
-}
-*/
-
-
-/*
-// id
-if (*forward == '(') {
-        domnodep node = calloc(1, sizeof(domnode_t));
-        node->depth = depth;
-        tok->data = node;
-        tok->proplist = malloc(1, sizeof(propp));
-        prop_list();
-        cur = forward;
-        return tok;
-}
-*/
 
