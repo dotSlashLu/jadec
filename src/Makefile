@@ -2,16 +2,21 @@ CC=gcc
 CCFLAGS=-g -Wall -O3
 TARGETS=parser.c lexer.c jadec.c pool.c btree.c
 
-jadec.out:
+config.h:
+	cd .. && $(MAKE) configure
+
+jadec.out: config.h
 	$(CC) $(CCFLAGS) $(TARGETS) -o jadec.out
 
-test: clean jadec.out
+test: jadec.out
 	./jadec.out test.in
+	$(MAKE) clean
 
-memtest: clean jadec.out
+memtest: jadec.out
 	valgrind --leak-check=full -v ./jadec.out test.in
+	$(MAKE) clean
 
 clean:
-	rm -f *.out *.o *.a
+	rm -f *.out *.o *.a config.h
 
 .PHONY: test memtest clean

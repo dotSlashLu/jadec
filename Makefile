@@ -13,4 +13,4 @@ clean:
 test: configure
 	cd src && $(MAKE) test
 
-.PHONY: clean test
+.PHONY: clean test configure

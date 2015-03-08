@@ -1,2 +1,2 @@
 doctype #asdf测试u8
-abc.fuck.fuck2#include(a = 123)
+abc.fuck.fuck2#include(id = "ff")

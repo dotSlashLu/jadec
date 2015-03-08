@@ -119,7 +119,6 @@ static void node()
                 switch (tok->type) {
                         // class
                         case '.':
-                                printf("[%d]\tbgn class\n", __LINE__);
                                 // class name
                                 tok = gettok();
                                 if (strlen(class) > 0) strcat(class, " ");
@@ -130,7 +129,6 @@ static void node()
 
                         // id
                         case '#':
-                                printf("[%d]\tbgn id\n", __LINE__);
                                 tok = gettok();
                                 if (id == NULL || strlen(id) == 0)
                                         strcpy(id, tok->data);
@@ -150,7 +148,7 @@ only one id can be assigned.\n");
                                 break;
 
                         default:
-                                // printf("[%d]\ttok type: %d\n", __LINE__, tok->type);
+                                printf("[%d]\tUnimplemented tok type for attr list start: %d\n", __LINE__, tok->type);
                                 break;
                 }
                 tok = gettok();
@@ -196,20 +194,31 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
         tok = gettok(); // "=" | new attr
         skip_blanks();
 
-        // id, another attr
-        if (tok->type == tok_id) {
-                printf("[%d]\ttok_id\n", __LINE__);
-                *(list++) = bt_install(root, attr, attr);
-        }
 
         // =, attr val
-        else if (tok->type == '=') {
+        if (tok->type == '=') {
                 tok = gettok();
                 skip_blanks();
                 if (tok->type == '"' || tok->type == '\'') {
                         char *val = get_quoted_literal(tok->type);
                         printf("[%d]\tval: %s\n", __LINE__, val);
-                        *(list++) = bt_install(root, attr, val);
+                        bt_nodeptr attrnode;
+                        // new attr,
+                        // install in the btree and record in the list
+                        if (!(attrnode = bt_find(root, attr)))
+                                *(list++) = bt_install(root, attr, val);
+                        // non-id attr exists,
+                        // chain the val to the old one
+                        else if (strcmp(attr, "id") || (strlen(attrnode->val) == 0)) {
+                                char *oldval = attrnode->val;
+                                if (strlen(oldval) > 0)
+                                        strcat(oldval, " ");
+                                strcat(oldval, val);
+                                bt_install(root, attr, oldval);
+                        }
+                        // multiple id, report for syntax error
+                        else
+                                printf("[%d]\tSyntax error: multiple id\n", __LINE__);
                         tok = gettok();
                         printf("[%d]\ttok->type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
                 }
@@ -235,6 +244,12 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
                                 *(list++) = bt_install(root, attr, tok->data);
                         tok = gettok();
                 }
+        }
+
+        // id, another attr
+        else if (tok->type == tok_id) {
+                printf("[%d]\ttok_id\n", __LINE__);
+                *(list++) = bt_install(root, attr, attr);
         }
 /*
                         break;
