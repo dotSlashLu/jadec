@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "jadec.h"
 #include "lexer.h"
@@ -98,10 +99,15 @@ static void node()
         // printf("[%d]\tNew dom node, type %s at level %d\n",
         // __LINE__, (char *)tok->data, _level);
         bt_nodeptr root = bt_init();
-        char *class = malloc(256);
-        char *id = malloc(256);
+
+        // an array of btree node
+        // btree for checking uniqueness
+        // list for output and memory deallocation
         bt_nodeptr *attr_list = malloc(sizeof(bt_nodeptr) * JADEC_MAX_PROP);
         bt_nodeptr *_attr_list = attr_list;
+
+        char *class = malloc(256), *id = malloc(256);
+        bt_install(root, "class", class); bt_install(root, "id", id);
         // node type
         char *type = malloc(strlen(tok->data) + 1);
         strcpy(type, tok->data);
@@ -118,7 +124,8 @@ static void node()
                                 tok = gettok();
                                 if (strlen(class) > 0) strcat(class, " ");
                                 strcat(class, tok->data);
-                                *(attr_list++) = bt_install(root, "class", class);
+                                if (!bt_find(root, "class"))
+                                        *(attr_list++) = bt_install(root, "class", class);
                                 break;
 
                         // id
@@ -131,12 +138,15 @@ static void node()
                                         printf("Syntax error: \
 only one id can be assigned.\n");
                                 printf("[%d]\tid: %s\n", __LINE__, id);
-                                *(attr_list++) = bt_install(root, "id", id);
                                 break;
 
                         // attr list
                         case '(':
                                 node_attr_list(root, attr_list);
+                                while (*_attr_list) {
+                                        printf("[%d]\tattr name: %s, val: %s\n", __LINE__, (*_attr_list)->key, (char *)(*_attr_list)->val);
+                                        _attr_list++;
+                                }
                                 break;
 
                         default:
@@ -170,7 +180,7 @@ static void node_attr_list(bt_nodeptr root, bt_nodeptr *list)
                 node_attr(root, list);
                 printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
         }
-        fputs("tok is )! yay!\n", stdout);
+        *(list++) = NULL;
 }
 
 static void node_attr(bt_nodeptr root, bt_nodeptr *list)
@@ -179,43 +189,60 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
         char *attr = malloc(strlen(tok->data) + 1);
         strcpy(attr, tok->data);
 
-        switch (tok->type) {
+/*
+        switch (tok->type) { // attr name
                 case tok_id:
+*/
+        tok = gettok(); // "=" | new attr
+        skip_blanks();
+
+        // id, another attr
+        if (tok->type == tok_id) {
+                printf("[%d]\ttok_id\n", __LINE__);
+                *(list++) = bt_install(root, attr, attr);
+        }
+
+        // =, attr val
+        else if (tok->type == '=') {
+                tok = gettok();
+                skip_blanks();
+                if (tok->type == '"' || tok->type == '\'') {
+                        char *val = get_quoted_literal(tok->type);
+                        printf("[%d]\tval: %s\n", __LINE__, val);
+                        *(list++) = bt_install(root, attr, val);
                         tok = gettok();
-                        skip_blanks();
+                        printf("[%d]\ttok->type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
+                }
 
-                        switch (tok->type) {
-                                // id, another attr
-                                case tok_id:
-                                        printf("[%d]\ttok_id\n", __LINE__);
-                                        *(list++) = bt_install(root, attr, attr);
+                else if (tok->type == tok_id) {
+                        /*
+                        * according to jade, only numeric vals
+                        * can be used without quote,
+                        * other types of vals are just eaten
+                        * silently without warning
+                        * which I think is not graceful,
+                        * but i'll stick with this sementic (for now)
+                        */
+                        char *data = tok->data;
+                        short is_numeric = 1;
+                        while (data) {
+                                if (!isdigit(*data++)) {
+                                        is_numeric = 0;
                                         break;
-
-                                // =, attr val
-                                case '=':
-                                        printf("[%d]\ttok_=\n", __LINE__);
-                                        tok = gettok();
-                                        skip_blanks();
-                                        if (tok->type == '"') {
-                                                // char *val = get_quoted_literal();
-                                                char *val = get_quoted_literal('"');
-                                                printf("[%d]\tval: %s\n", __LINE__, val);
-                                                free(val);
-                                                tok = gettok();
-                                                printf("[%d]\ttok->type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
-                                        }
-                                        // TODO
-                                        else if (tok->type == tok_id) {
-                                                printf("[%d]\ttok_id\n", __LINE__);
-                                        }
-                                        break;
+                                }
                         }
-
+                        if (is_numeric)
+                                *(list++) = bt_install(root, attr, tok->data);
+                        tok = gettok();
+                }
+        }
+/*
                         break;
                 default:
                         printf("[%d]\ttok type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
                         break;
         }
+*/
 }
 
 static inline void skip_blanks()

@@ -86,11 +86,13 @@ static inline char getchr()
         return *++forward;
 }
 
+/*
 static inline void rewindchr(int i)
 {
         _fsize += i;
         forward -= i;
 }
+*/
 
 void lexer_init(char *input, long fsize)
 {
