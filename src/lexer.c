@@ -136,7 +136,7 @@ char *get_literal_to_lf()
         int len = forward - cur;
         char *ret = malloc(len + 1);
         strncpy(ret, cur, len);
-        *(ret + len + 1) = '\0';
+        *(ret + len) = '\0';
         cur = forward;
         return ret;
 }

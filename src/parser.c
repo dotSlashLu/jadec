@@ -70,6 +70,9 @@ static void parsetok()
                 // literal
                 case '|':
                         tok = gettok();
+                        char *literal = get_literal_to_lf();
+                        printf("[%d]\t%s\n", __LINE__, literal);
+                        free(literal);
                         break;
 
                 case tok_lf:
@@ -145,7 +148,6 @@ only one id can be assigned.\n", __LINE__);
                                 break;
 
                         default:
-                                printf("[%d]\tUnimplemented tok type for attr list start: %d\n", __LINE__, tok->type);
                                 break;
                 }
         }
@@ -197,7 +199,7 @@ static void node_attr(bt_nodeptr root, bt_nodeptr **_list)
                 case tok_id:
 */
         tok = gettok(); // "=" | new attr
-        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
+        // printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
         skip_blanks();
 
 
@@ -227,7 +229,7 @@ static void node_attr(bt_nodeptr root, bt_nodeptr **_list)
                         else
                                 printf("[%d]\tSyntax error: multiple id\n", __LINE__);
                         tok = gettok();
-                        printf("[%d]\ttok->type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
+                        // printf("[%d]\ttok->type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
                 }
 
                 else if (tok->type == tok_id) {
@@ -349,7 +351,7 @@ static domnodep new_node(char *type)
 {
         domnodep ret = pool_alloc(_node_pool, sizeof(domnode_t));
         if (_prev_node) _prev_node = _node;
-        else _prev_node = ret;
+        // else _prev_node = ret;
         _node = ret;
         domnodep _prev = _prev_node;
 
@@ -391,8 +393,9 @@ static domnodep new_node(char *type)
                 // __LINE__, _prev, _prev->depth, _level, _level <= _prev->depth);
         }
 
-        // printf("[%d]\tnew node(%p) - type: %s, depth: %d, closed: %d, parent: %p, prev: %p\n",
-        //         __LINE__, ret, ret->type, ret->depth, ret->closed, ret->parent, _prev_node);
+        printf("[%d]\tnew node(%p) - type: %s, depth: %d, closed: %d, parent: %p, prev: %p\n",
+        __LINE__, ret, ret->type, ret->depth, ret->closed, ret->parent, _prev_node);
+        if (!_prev_node) _prev_node = ret;
         return ret;
 }
 
