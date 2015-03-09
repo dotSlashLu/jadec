@@ -181,6 +181,7 @@ char *get_quoted_literal(char quote)
         *(ret + i + 1) = '\0';
         // eat ending "
         getchr();
+        cur = forward;
         return ret;
 #undef cpy
 }

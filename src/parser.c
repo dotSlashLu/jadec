@@ -31,8 +31,8 @@ static void delim(tokp);                        // tok_delim: [ \t]
 static void parsetok();
 static void close_node(domnodep node);
 static domnodep new_node(char *type);
-static void node_attr_list(bt_nodeptr attr_tree_root, bt_nodeptr *attr_list);
-static void node_attr(bt_nodeptr attr_tree_root, bt_nodeptr *attr_list);
+static void node_attr_list(bt_nodeptr attr_tree_root, bt_nodeptr **attr_list);
+static void node_attr(bt_nodeptr root, bt_nodeptr **_list);
 static inline void skip_blanks();
 
 void parse(char *in, long fsize, FILE *output)
@@ -40,14 +40,12 @@ void parse(char *in, long fsize, FILE *output)
         _output = output;
         lexer_init(in, fsize);
         _node_pool = pool_create(2048);
-        while(1) {
+        tok = gettok();
+        while (tok && tok->type != tok_eof) {
                 parsetok();
                 jadec_pool_release(0);
-                if (!tok || tok->type == tok_eof) {
-                        printf("\n---[%d]\tEOF---\n", __LINE__);
-                        break;
-                }
         }
+        printf("\n[%d]\t---EOF---\n", __LINE__);
 
         tok_free(tok);
         pool_release(_node_pool);
@@ -56,8 +54,6 @@ void parse(char *in, long fsize, FILE *output)
 
 static void parsetok()
 {
-        if (!tok) tok = gettok();
-
         switch (tok->type) {
                 case tok_id:
                         // doctype
@@ -67,19 +63,21 @@ static void parsetok()
                         }
                         else {
                                 node();
-                                tok = gettok();
+                                // tok = gettok();
                         }
                         break;
 
                 case tok_lf:
                         line++;
                         tok = gettok();
+                        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
                         break;
 
                 case tok_delim:
+                        printf("[%d]\ttok delim\n", __LINE__);
                         _level = *(int *)tok->data;
                         tok = gettok();
-
+                        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
                         break;
 
                 case tok_eof:
@@ -107,15 +105,13 @@ static void node()
         bt_nodeptr *_attr_list = attr_list;
 
         char *class = malloc(256), *id = malloc(256);
-        *attr_list++ = bt_install(root, "class", class);
-        *attr_list++ = bt_install(root, "id", id);
         // node type
         char *type = malloc(strlen(tok->data) + 1);
         strcpy(type, tok->data);
 
         // attrs
-        tok = gettok();
         do {
+                tok = gettok();
                 // printf("[%d]\ttok type: %d\n", __LINE__, tok->type);
                 switch (tok->type) {
                         // class
@@ -131,6 +127,8 @@ static void node()
                         // id
                         case '#':
                                 tok = gettok();
+                                if (!bt_find(root, "id"))
+                                        *attr_list++ = bt_install(root, "id", id);
                                 if (id == NULL || strlen(id) == 0)
                                         strcpy(id, tok->data);
                                 else
@@ -141,16 +139,18 @@ only one id can be assigned.\n", __LINE__);
 
                         // attr list
                         case '(':
-                                node_attr_list(root, attr_list);
+                                node_attr_list(root, &attr_list);
                                 break;
 
                         default:
-                                // TODO: reimplement this switch as a function
                                 printf("[%d]\tUnimplemented tok type for attr list start: %d\n", __LINE__, tok->type);
+                                // TODO: reimplement this switch as a function to get rid of this goto
+                                // goto end_attr_loop;
                                 break;
                 }
         }
         while (tok->type != tok_delim &&        // begin literal
+                tok->type != tok_lf &&
                 tok->type != '|' &&             // begin text node
                 tok->type != tok_eof);          // eof
 
@@ -164,35 +164,34 @@ only one id can be assigned.\n", __LINE__);
 
         new_node(type);
         fprintf(_output, "[%d]\t<%s \n", __LINE__, type);
+        *++attr_list = NULL;
         while (*_attr_list) {
                 printf("[%d]\t%s = \"%s\"\n", __LINE__, (*_attr_list)->key, (char *)(*_attr_list)->val);
                 _attr_list++;
         }
-        printf("[%d]\t>", __LINE__);
-        // printf("[%d]\ttok type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
-
+        printf("[%d]\t>\n", __LINE__);
+        printf("[%d]\ttok type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
         bt_free(root);
         free(type);
         free(class);
         free(id);
 }
 
-static void node_attr_list(bt_nodeptr root, bt_nodeptr *list)
+static void node_attr_list(bt_nodeptr root, bt_nodeptr **_list)
 {
-        printf("[%d]\tattr list, list: %p\n", __LINE__, list);
+        bt_nodeptr *list = *_list;
         tok = gettok();
-        while (tok->type != ')') {
-                node_attr(root, list);
-                printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
-        }
+        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
+        while (tok->type != ')')
+                node_attr(root, &list);
         // eat )
         tok = gettok();
-        printf("[%d]\tlist: %p\n", __LINE__, list);
 }
 
-static void node_attr(bt_nodeptr root, bt_nodeptr *list)
+static void node_attr(bt_nodeptr root, bt_nodeptr **_list)
 {
-        printf("[%d]\tnode attr, list: %p, next: %p\n", __LINE__, list, list + 1);
+        bt_nodeptr *list = *_list;
+        printf("[%d]\t%p\n", __LINE__, _list);
         char *attr = malloc(strlen(tok->data) + 1);
         strcpy(attr, tok->data);
 
@@ -201,6 +200,7 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
                 case tok_id:
 */
         tok = gettok(); // "=" | new attr
+        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
         skip_blanks();
 
 
@@ -264,7 +264,7 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
                 *(list++) = bt_install(root, attr, attr);
         }
 
-        *list++ = NULL;
+        // *++list = NULL;
 /*
                         break;
                 default:
@@ -362,7 +362,6 @@ static domnodep new_node(char *type)
                         while (_prev && _prev->depth < _level && _prev->parent)
                                 _prev = _prev->parent;
         }
-
         ret->depth = _level;
 
         // test for self closing tags
@@ -410,8 +409,8 @@ static void close_node(domnodep node)
                 case -1:
                         if (node->depth == _level) return;
                         else
-                                printf("Syntax error in line %d: %s is self closed and should not \
-contain any child\n", line, node->type);
+                                printf("[%d]\tSyntax error in line %d: %s is self closed and should not \
+contain any child\n", __LINE__, line, node->type);
                         break;
 
                 default:
