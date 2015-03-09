@@ -108,6 +108,39 @@ void lexer_free(FILE *input)
         free(jadec_pool);
 }
 
+char *get_literal_to_lf()
+{
+        while ((*forward != '\r' && getchr() != '\n') || *forward != '\n') {
+                // multibyte
+                if (u8seq_len > 1) {
+                        advance();
+                        continue;
+                }
+
+                // lf, break
+                if (*forward == '\r') {
+                        advance();
+                        if (*forward == '\n') {
+                                if (forward > cur + 1 && *(forward - 2) == '\\')
+                                        continue;
+                                break;
+                        }
+                }
+                else if (*forward == '\n' || u8seq_len < 0) {
+                        if (forward > cur && *(forward - 1) == '\\')
+                                continue;
+                        break;
+                }
+        }
+
+        int len = forward - cur;
+        char *ret = malloc(len + 1);
+        strncpy(ret, cur, len);
+        *(ret + len + 1) = '\0';
+        cur = forward;
+        return ret;
+}
+
 char *get_quoted_literal(char quote)
 {
         int buflen = 512, i = 0;

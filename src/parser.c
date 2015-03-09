@@ -107,7 +107,8 @@ static void node()
         bt_nodeptr *_attr_list = attr_list;
 
         char *class = malloc(256), *id = malloc(256);
-        bt_install(root, "class", class); bt_install(root, "id", id);
+        *attr_list++ = bt_install(root, "class", class);
+        *attr_list++ = bt_install(root, "id", id);
         // node type
         char *type = malloc(strlen(tok->data) + 1);
         strcpy(type, tok->data);
@@ -124,7 +125,7 @@ static void node()
                                 if (strlen(class) > 0) strcat(class, " ");
                                 strcat(class, tok->data);
                                 if (!bt_find(root, "class"))
-                                        *(attr_list++) = bt_install(root, "class", class);
+                                        *attr_list++ = bt_install(root, "class", class);
                                 break;
 
                         // id
@@ -133,35 +134,41 @@ static void node()
                                 if (id == NULL || strlen(id) == 0)
                                         strcpy(id, tok->data);
                                 else
-                                        printf("Syntax error: \
-only one id can be assigned.\n");
+                                        printf("[%d]Syntax error: \
+only one id can be assigned.\n", __LINE__);
                                 printf("[%d]\tid: %s\n", __LINE__, id);
                                 break;
 
                         // attr list
                         case '(':
                                 node_attr_list(root, attr_list);
-                                while (*_attr_list) {
-                                        printf("[%d]\tattr name: %s, val: %s\n", __LINE__, (*_attr_list)->key, (char *)(*_attr_list)->val);
-                                        _attr_list++;
-                                }
                                 break;
 
                         default:
+                                // TODO: reimplement this switch as a function
                                 printf("[%d]\tUnimplemented tok type for attr list start: %d\n", __LINE__, tok->type);
                                 break;
                 }
-                tok = gettok();
         }
         while (tok->type != tok_delim &&        // begin literal
                 tok->type != '|' &&             // begin text node
-                tok->type != tok_id &&          // new node
                 tok->type != tok_eof);          // eof
+
+        // text node
+        if (tok->type == '|' || tok->type == tok_delim) {
+                printf("[%d]\ttok type: %d, data: %d\n", __LINE__, tok->type, *(int *)tok->data);
+                char *literal = get_literal_to_lf();
+                printf("[%d]\tliteral: [%s]\n", __LINE__, literal);
+                free(literal);
+        }
 
         new_node(type);
         fprintf(_output, "[%d]\t<%s \n", __LINE__, type);
-        printf("[%d]\tclass = \"%s\"\n", __LINE__, class);
-        printf("[%d]\tid = \"%s\"\n", __LINE__, id);
+        while (*_attr_list) {
+                printf("[%d]\t%s = \"%s\"\n", __LINE__, (*_attr_list)->key, (char *)(*_attr_list)->val);
+                _attr_list++;
+        }
+        printf("[%d]\t>", __LINE__);
         // printf("[%d]\ttok type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
 
         bt_free(root);
@@ -172,18 +179,20 @@ only one id can be assigned.\n");
 
 static void node_attr_list(bt_nodeptr root, bt_nodeptr *list)
 {
-        printf("[%d]\tattr list\n", __LINE__);
+        printf("[%d]\tattr list, list: %p\n", __LINE__, list);
         tok = gettok();
         while (tok->type != ')') {
                 node_attr(root, list);
                 printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
         }
-        *(list++) = NULL;
+        // eat )
+        tok = gettok();
+        printf("[%d]\tlist: %p\n", __LINE__, list);
 }
 
 static void node_attr(bt_nodeptr root, bt_nodeptr *list)
 {
-        printf("[%d]\tnode attr\n", __LINE__);
+        printf("[%d]\tnode attr, list: %p, next: %p\n", __LINE__, list, list + 1);
         char *attr = malloc(strlen(tok->data) + 1);
         strcpy(attr, tok->data);
 
@@ -205,8 +214,11 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
                         bt_nodeptr attrnode;
                         // new attr,
                         // install in the btree and record in the list
-                        if (!(attrnode = bt_find(root, attr)))
-                                *(list++) = bt_install(root, attr, val);
+                        if (!(attrnode = bt_find(root, attr))) {
+                                printf("[%d]\tnew attr\n", __LINE__);
+                                *list++ = bt_install(root, attr, val);
+                                printf("[%d]\tattr installed to list: (%p)%s -> %s\n", __LINE__, list - 1, (*(list - 1))->key, (char *)(*(list - 1))->val);
+                        }
                         // non-id attr exists,
                         // chain the val to the old one
                         else if (strcmp(attr, "id") || (strlen(attrnode->val) == 0)) {
@@ -251,6 +263,8 @@ static void node_attr(bt_nodeptr root, bt_nodeptr *list)
                 printf("[%d]\ttok_id\n", __LINE__);
                 *(list++) = bt_install(root, attr, attr);
         }
+
+        *list++ = NULL;
 /*
                         break;
                 default:
