@@ -214,12 +214,12 @@ tokp gettok()
                 *i = 0;
                 do {
                         (*i)++;
-                        cur = forward;
+                        // eat current space
+                        cur = forward + 1;
                         advance();
                 } while (isblank(*forward));
                 tok->type = tok_delim;
                 tok->data = i;
-                cur = forward;
         }
 
         // line feed
@@ -258,7 +258,7 @@ tokp gettok()
                 cur = forward;
         }
 
-        // printf("[%d]\ttok - type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
+        // printf("[%d]\ttok - type: %d data: [%s]\n", __LINE__, tok->type, (char *)tok->data);
         return tok;
 }
 

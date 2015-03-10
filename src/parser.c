@@ -27,7 +27,7 @@ static const char *doctypestr(char *);
 // doctype node
 static void node_doctype();
 static void node();
-static void delim(tokp);                        // tok_delim: [ \t]
+static void delim(tokp);
 static void parsetok();
 static void close_node(domnodep node);
 static domnodep new_node(char *type);
@@ -67,17 +67,20 @@ static void parsetok()
                         }
                         break;
 
+                // literal
+                case '|':
+                        tok = gettok();
+                        break;
+
                 case tok_lf:
                         line++;
+                        _level = 0;
                         tok = gettok();
-                        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
                         break;
 
                 case tok_delim:
-                        printf("[%d]\ttok delim\n", __LINE__);
                         _level = *(int *)tok->data;
                         tok = gettok();
-                        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
                         break;
 
                 case tok_eof:
@@ -134,7 +137,6 @@ static void node()
                                 else
                                         printf("[%d]Syntax error: \
 only one id can be assigned.\n", __LINE__);
-                                printf("[%d]\tid: %s\n", __LINE__, id);
                                 break;
 
                         // attr list
@@ -144,8 +146,6 @@ only one id can be assigned.\n", __LINE__);
 
                         default:
                                 printf("[%d]\tUnimplemented tok type for attr list start: %d\n", __LINE__, tok->type);
-                                // TODO: reimplement this switch as a function to get rid of this goto
-                                // goto end_attr_loop;
                                 break;
                 }
         }
@@ -170,7 +170,6 @@ only one id can be assigned.\n", __LINE__);
                 _attr_list++;
         }
         printf("[%d]\t>\n", __LINE__);
-        printf("[%d]\ttok type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
         bt_free(root);
         free(type);
         free(class);
@@ -181,7 +180,6 @@ static void node_attr_list(bt_nodeptr root, bt_nodeptr **_list)
 {
         bt_nodeptr *list = *_list;
         tok = gettok();
-        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
         while (tok->type != ')')
                 node_attr(root, &list);
         // eat )
@@ -191,7 +189,6 @@ static void node_attr_list(bt_nodeptr root, bt_nodeptr **_list)
 static void node_attr(bt_nodeptr root, bt_nodeptr **_list)
 {
         bt_nodeptr *list = *_list;
-        printf("[%d]\t%p\n", __LINE__, _list);
         char *attr = malloc(strlen(tok->data) + 1);
         strcpy(attr, tok->data);
 
@@ -210,14 +207,12 @@ static void node_attr(bt_nodeptr root, bt_nodeptr **_list)
                 skip_blanks();
                 if (tok->type == '"' || tok->type == '\'') {
                         char *val = get_quoted_literal(tok->type);
-                        printf("[%d]\tval: %s\n", __LINE__, val);
                         bt_nodeptr attrnode;
                         // new attr,
                         // install in the btree and record in the list
                         if (!(attrnode = bt_find(root, attr))) {
-                                printf("[%d]\tnew attr\n", __LINE__);
                                 *list++ = bt_install(root, attr, val);
-                                printf("[%d]\tattr installed to list: (%p)%s -> %s\n", __LINE__, list - 1, (*(list - 1))->key, (char *)(*(list - 1))->val);
+                                // printf("[%d]\tattr installed to list: (%p)%s -> %s\n", __LINE__, list - 1, (*(list - 1))->key, (char *)(*(list - 1))->val);
                         }
                         // non-id attr exists,
                         // chain the val to the old one
@@ -353,16 +348,20 @@ static void node_doctype()
 static domnodep new_node(char *type)
 {
         domnodep ret = pool_alloc(_node_pool, sizeof(domnode_t));
+        if (_prev_node) _prev_node = _node;
+        else _prev_node = ret;
+        _node = ret;
         domnodep _prev = _prev_node;
 
+        ret->depth = _level;
         // find parent
         if (_prev) {
                 if (_prev->depth < _level) ret->parent = _prev;
+                else if (_prev->depth == _level) ret->parent = _prev->parent;
                 else
                         while (_prev && _prev->depth < _level && _prev->parent)
                                 _prev = _prev->parent;
         }
-        ret->depth = _level;
 
         // test for self closing tags
 #define cmp(str)(!strcmp(str, type))
@@ -385,16 +384,15 @@ static domnodep new_node(char *type)
         // if new node's level is lte than the prev node
         // close any prev node that isn't closed
         _prev = _prev_node;
-        while (_prev && _prev->depth <= _level) {
+        while (_prev && _level <= _prev->depth) {
                 close_node(_prev);
                 _prev = _prev->parent;
+                // if (_prev) printf("[%d]\tprev(%p) depth: %d, current depth: %d, should close: %d\n",
+                // __LINE__, _prev, _prev->depth, _level, _level <= _prev->depth);
         }
 
-        if (_prev_node) _prev_node = _node;
-        else _prev_node = ret;
-        _node = ret;
-        printf("[%d]\tnew node - type: %s, depth: %d, closed: %d, parent: %p\n",
-                __LINE__, ret->type, ret->depth, ret->closed, ret->parent);
+        // printf("[%d]\tnew node(%p) - type: %s, depth: %d, closed: %d, parent: %p, prev: %p\n",
+        //         __LINE__, ret, ret->type, ret->depth, ret->closed, ret->parent, _prev_node);
         return ret;
 }
 
@@ -402,7 +400,7 @@ static void close_node(domnodep node)
 {
         switch(node->closed) {
                 case 0:
-                        fprintf(_output, "</%s>", node->type);
+                        fprintf(_output, "[%d]\t</%s>\n", __LINE__, node->type);
                         node->closed = 1;
                         break;
 
