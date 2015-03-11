@@ -1,5 +1,5 @@
 doctype 他にもいろんな漁が
 node.c1.c2#id(attr="attrVal")
-        childNode
-        | childNode2
+        childNode.
+                childNode2
 closeChildAndNode

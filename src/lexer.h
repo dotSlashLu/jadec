@@ -10,8 +10,9 @@ enum {
         tok_id          = 256,
         // \r?\n
         tok_lf,
-        tok_delim       = 258,
-        tok_eof
+        tok_start_block,
+        tok_delim,
+        tok_eof         = 260
 };
 
 tokp gettok();

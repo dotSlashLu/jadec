@@ -86,13 +86,11 @@ static inline char getchr()
         return *++forward;
 }
 
-/*
 static inline void rewindchr(int i)
 {
         _fsize += i;
         forward -= i;
 }
-*/
 
 void lexer_init(char *input, long fsize)
 {
@@ -139,6 +137,12 @@ char *get_literal_to_lf()
         *(ret + len) = '\0';
         cur = forward;
         return ret;
+}
+
+// TODO
+char *get_literal_to_level(int level)
+{
+
 }
 
 char *get_quoted_literal(char quote)
@@ -222,6 +226,33 @@ tokp gettok()
                 tok->data = i;
         }
 
+        // start block literal
+        else if (*forward == '.') {
+                // unix
+                if (getchr() == '\n') {
+                        tok->type = tok_start_block;
+                        rewindchr(1);
+                }
+
+                // windows
+                else if (getchr() == '\r') {
+                        if (getchr() == '\n') {
+                                tok->type = tok_start_block;
+                                rewindchr(2);
+                        }
+
+                        else {
+                                tok->type = '.';
+                                rewindchr(1);
+                        }
+                }
+
+                else
+                        tok->type = '.';
+
+                cur = forward;
+        }
+
         // line feed
         else if ((*forward == '\r' && getchr() == '\n') ||
                 *forward == '\n') {
@@ -239,21 +270,7 @@ tokp gettok()
         }
 
         else {
-                // printf("[%d]\tglyph, u8seq_len: %d\n", __LINE__, u8seq_len);
                 tok->type = *forward;
-                // char *data = pool_alloc(u8seq_len + 1);
-                // if (u8seq_len < 2) {
-                //         *data = *forward;
-                //         getchr();
-                //         *(data + 1) = '\0';
-                //         // printf("[%d]\tdata: %s, u8seqlen: %d\n", __LINE__, data, u8seq_len);
-                // }
-                // else {
-                //         strncpy(data, u8seq, u8seq_len);
-                //         // printf("glyph len %d\n", u8seq_len);
-                //         *(data + u8seq_len + 1) = '\0';
-                //         advance();
-                // }
                 advance();
                 cur = forward;
         }

@@ -147,6 +147,11 @@ only one id can be assigned.\n", __LINE__);
                                 node_attr_list(root, &attr_list);
                                 break;
 
+                        case tok_start_block:
+                                printf("[%d]\tstart block\n", __LINE__);
+                                exit(1);
+                                break;
+
                         default:
                                 break;
                 }
