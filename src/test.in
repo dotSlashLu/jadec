@@ -1,5 +1,7 @@
 doctype 他にもいろんな漁が
 node.c1.c2#id(attr="attrVal")
+        | textNode
         childNode.
+                他にもいろんな漁が
                 childNode2
 closeChildAndNode

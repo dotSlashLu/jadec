@@ -16,6 +16,7 @@ static char *u8seq;
 static tokp tok;
 static inline char getchr();
 static inline unsigned short advance();
+static char *_get_literal_to_lf();
 
 
 void *jadec_pool;
@@ -108,6 +109,17 @@ void lexer_free(FILE *input)
 
 char *get_literal_to_lf()
 {
+        _get_literal_to_lf();
+        int len = forward - cur;
+        char *ret = malloc(len + 1);
+        strncpy(ret, cur, len);
+        *(ret + len) = '\0';
+        cur = forward;
+        return ret;
+}
+
+static char *_get_literal_to_lf()
+{
         while ((*forward != '\r' && getchr() != '\n') || *forward != '\n') {
                 // multibyte
                 if (u8seq_len > 1) {
@@ -130,19 +142,34 @@ char *get_literal_to_lf()
                         break;
                 }
         }
-
-        int len = forward - cur;
-        char *ret = malloc(len + 1);
-        strncpy(ret, cur, len);
-        *(ret + len) = '\0';
-        cur = forward;
-        return ret;
+        return forward;
 }
 
-// TODO
 char *get_literal_to_level(int level)
 {
-
+        while (1) {
+                int curlvl = 0;
+                while (isblank(*forward)) {
+                        getchr();
+                        curlvl++;
+                }
+                if (curlvl <= level) {
+                        rewindchr(curlvl);
+                        break;
+                }
+                _get_literal_to_lf();
+                // eat lf
+                if (*forward == '\r') getchr();
+                getchr();
+        }
+        int sz = forward - cur;
+        char *ret = malloc(sz + 1);
+        // printf("[%d]\tto lvl: %d, sz: %d, dest: %p\n", __LINE__, level, sz, ret);
+        if (!ret) return NULL;
+        strncpy(ret, cur, sz);
+        cur = forward;
+        *(ret + sz) = '\0';
+        return ret;
 }
 
 char *get_quoted_literal(char quote)
@@ -231,19 +258,20 @@ tokp gettok()
                 // unix
                 if (getchr() == '\n') {
                         tok->type = tok_start_block;
-                        rewindchr(1);
+                        // eat \n
+                        getchr();
                 }
 
                 // windows
-                else if (getchr() == '\r') {
+                else if (*forward == '\r') {
                         if (getchr() == '\n') {
                                 tok->type = tok_start_block;
-                                rewindchr(2);
+                                getchr();
                         }
 
                         else {
                                 tok->type = '.';
-                                rewindchr(1);
+                                rewindchr(2);
                         }
                 }
 

@@ -92,8 +92,9 @@ static void parsetok()
                         break;
 
                 default:
-                        printf("[%d]Unimplemented tok: %d, data: %s\n",
+                        printf("[%d]\tUnimplemented tok: %d, data: %s\n",
                         __LINE__, tok->type, (char *)tok->data);
+                        exit(1);
                         break;
         }
 }
@@ -147,10 +148,12 @@ only one id can be assigned.\n", __LINE__);
                                 node_attr_list(root, &attr_list);
                                 break;
 
-                        case tok_start_block:
-                                printf("[%d]\tstart block\n", __LINE__);
-                                exit(1);
+                        case tok_start_block: {
+                                char *literal = get_literal_to_level(_level);
+                                printf("[%d]\tblock literal: %s\n", __LINE__, literal);
+                                free(literal);
                                 break;
+                        }
 
                         default:
                                 break;
@@ -177,6 +180,7 @@ only one id can be assigned.\n", __LINE__);
                 _attr_list++;
         }
         printf("[%d]\t>\n", __LINE__);
+
         bt_free(root);
         free(type);
         free(class);
