@@ -145,8 +145,12 @@ static char *_get_literal_to_lf()
         return forward;
 }
 
-char *get_literal_to_level(int level)
+char *get_literal_to_level(int level, int *linenum)
 {
+        int indent = 0;
+        int buflen = 1024;
+        char *ret = malloc(buflen);
+        int idx = 0;
         while (1) {
                 int curlvl = 0;
                 while (isblank(*forward)) {
@@ -155,20 +159,43 @@ char *get_literal_to_level(int level)
                 }
                 if (curlvl <= level) {
                         rewindchr(curlvl);
+                        cur = forward;
                         break;
                 }
+
+                if (indent == 0) indent = curlvl;
                 _get_literal_to_lf();
+
                 // eat lf
                 if (*forward == '\r') getchr();
                 getchr();
+                (*linenum)++;
+
+                // eat indent
+                cur += indent;
+
+                int len = forward - cur;
+                if (idx + len >= buflen) {
+                        buflen += buflen / 2;
+                        ret = realloc(ret, buflen);
+                }
+                strncpy(ret + idx, cur, len);
+                cur = forward;
+                idx += len;
         }
-        int sz = forward - cur;
-        char *ret = malloc(sz + 1);
-        // printf("[%d]\tto lvl: %d, sz: %d, dest: %p\n", __LINE__, level, sz, ret);
-        if (!ret) return NULL;
-        strncpy(ret, cur, sz);
-        cur = forward;
-        *(ret + sz) = '\0';
+
+        // rewind lf
+        rewindchr(1);
+
+        printf("[%d]\t%c\n", __LINE__, *forward);
+        *(ret + idx + 1) = '\0';
+        // int sz = forward - cur;
+        // char *ret = malloc(sz + 1);
+        // // printf("[%d]\tto lvl: %d, sz: %d, dest: %p\n", __LINE__, level, sz, ret);
+        // if (!ret) return NULL;
+        // strncpy(ret, cur, sz);
+        // cur = forward;
+        // *(ret + sz) = '\0';
         return ret;
 }
 
@@ -303,7 +330,7 @@ tokp gettok()
                 cur = forward;
         }
 
-        // printf("[%d]\ttok - type: %d data: [%s]\n", __LINE__, tok->type, (char *)tok->data);
+        printf("[%d]\ttok - type: %d data: [%s]\n", __LINE__, tok->type, (char *)tok->data);
         return tok;
 }
 

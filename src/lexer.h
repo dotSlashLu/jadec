@@ -18,7 +18,7 @@ enum {
 tokp gettok();
 char *get_quoted_literal(char quotemark);
 char *get_literal_to_lf();
-char *get_literal_to_level(int level);
+char *get_literal_to_level(int level, int *linenum);
 void tok_free(tokp tok);
 void lexer_init(char *input, long fsize);
 void lexer_free();

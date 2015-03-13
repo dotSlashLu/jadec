@@ -54,6 +54,7 @@ void parse(char *in, long fsize, FILE *output)
 
 static void parsetok()
 {
+        printf("parse tok\n");
         switch (tok->type) {
                 case tok_id:
                         // doctype
@@ -76,9 +77,11 @@ static void parsetok()
                         break;
 
                 case tok_lf:
+                        printf("[%d]\tlf\n", __LINE__);
                         line++;
                         _level = 0;
                         tok = gettok();
+                        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
                         break;
 
                 case tok_delim:
@@ -101,6 +104,7 @@ static void parsetok()
 
 static void node()
 {
+        printf("[%d]\tstart node\n", __LINE__);
         // printf("[%d]\tNew dom node, type %s at level %d\n",
         // __LINE__, (char *)tok->data, _level);
         bt_nodeptr root = bt_init();
@@ -149,7 +153,7 @@ only one id can be assigned.\n", __LINE__);
                                 break;
 
                         case tok_start_block: {
-                                char *literal = get_literal_to_level(_level);
+                                char *literal = get_literal_to_level(_level, &line);
                                 printf("[%d]\tblock literal: %s\n", __LINE__, literal);
                                 free(literal);
                                 break;
@@ -164,6 +168,7 @@ only one id can be assigned.\n", __LINE__);
                 tok->type != '|' &&             // begin text node
                 tok->type != tok_eof);          // eof
 
+        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
         // text node
         if (tok->type == '|' || tok->type == tok_delim) {
                 printf("[%d]\ttok type: %d, data: %d\n", __LINE__, tok->type, *(int *)tok->data);
@@ -174,7 +179,11 @@ only one id can be assigned.\n", __LINE__);
 
         new_node(type);
         fprintf(_output, "[%d]\t<%s \n", __LINE__, type);
-        *++attr_list = NULL;
+        // TODO
+        if (*attr_list) {
+                printf("[%d]\thas attr_list\n", __LINE__);
+                *++attr_list = NULL;
+        }
         while (*_attr_list) {
                 printf("[%d]\t%s = \"%s\"\n", __LINE__, (*_attr_list)->key, (char *)(*_attr_list)->val);
                 _attr_list++;
@@ -185,6 +194,7 @@ only one id can be assigned.\n", __LINE__);
         free(type);
         free(class);
         free(id);
+        printf("[%d]\tend node\n", __LINE__);
 }
 
 static void node_attr_list(bt_nodeptr root, bt_nodeptr **_list)
