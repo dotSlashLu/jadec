@@ -54,7 +54,6 @@ void parse(char *in, long fsize, FILE *output)
 
 static void parsetok()
 {
-        printf("parse tok\n");
         switch (tok->type) {
                 case tok_id:
                         // doctype
@@ -72,16 +71,14 @@ static void parsetok()
                 case '|':
                         tok = gettok();
                         char *literal = get_literal_to_lf();
-                        printf("[%d]\t%s\n", __LINE__, literal);
                         free(literal);
                         break;
 
                 case tok_lf:
-                        printf("[%d]\tlf\n", __LINE__);
                         line++;
                         _level = 0;
                         tok = gettok();
-                        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
+                        // printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
                         break;
 
                 case tok_delim:
@@ -104,7 +101,6 @@ static void parsetok()
 
 static void node()
 {
-        printf("[%d]\tstart node\n", __LINE__);
         // printf("[%d]\tNew dom node, type %s at level %d\n",
         // __LINE__, (char *)tok->data, _level);
         bt_nodeptr root = bt_init();
@@ -112,7 +108,7 @@ static void node()
         // an array of btree node
         // btree for checking uniqueness
         // list for output and memory deallocation
-        bt_nodeptr *attr_list = malloc(sizeof(bt_nodeptr) * JADEC_MAX_PROP);
+        bt_nodeptr *attr_list = calloc(1, sizeof(bt_nodeptr) * JADEC_MAX_PROP);
         bt_nodeptr *_attr_list = attr_list;
 
         char *class = malloc(256), *id = malloc(256);
@@ -168,7 +164,7 @@ only one id can be assigned.\n", __LINE__);
                 tok->type != '|' &&             // begin text node
                 tok->type != tok_eof);          // eof
 
-        printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
+        // printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
         // text node
         if (tok->type == '|' || tok->type == tok_delim) {
                 printf("[%d]\ttok type: %d, data: %d\n", __LINE__, tok->type, *(int *)tok->data);
@@ -181,7 +177,7 @@ only one id can be assigned.\n", __LINE__);
         fprintf(_output, "[%d]\t<%s \n", __LINE__, type);
         // TODO
         if (*attr_list) {
-                printf("[%d]\thas attr_list\n", __LINE__);
+                printf("[%d]\thas attr_list, first attr: %p\n", __LINE__, *attr_list);
                 *++attr_list = NULL;
         }
         while (*_attr_list) {
@@ -194,7 +190,6 @@ only one id can be assigned.\n", __LINE__);
         free(type);
         free(class);
         free(id);
-        printf("[%d]\tend node\n", __LINE__);
 }
 
 static void node_attr_list(bt_nodeptr root, bt_nodeptr **_list)

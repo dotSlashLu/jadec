@@ -187,7 +187,6 @@ char *get_literal_to_level(int level, int *linenum)
         // rewind lf
         rewindchr(1);
 
-        printf("[%d]\t%c\n", __LINE__, *forward);
         *(ret + idx + 1) = '\0';
         // int sz = forward - cur;
         // char *ret = malloc(sz + 1);
@@ -330,7 +329,7 @@ tokp gettok()
                 cur = forward;
         }
 
-        printf("[%d]\ttok - type: %d data: [%s]\n", __LINE__, tok->type, (char *)tok->data);
+        // printf("[%d]\ttok - type: %d data: [%s]\n", __LINE__, tok->type, (char *)tok->data);
         return tok;
 }
 
