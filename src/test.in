@@ -4,4 +4,5 @@ node.c1.c2#id(attr="attrVal")
         childNode.
                 他にもいろんな漁が
                 childNode2
+          node
 closeChildAndNode

@@ -158,7 +158,8 @@ char *get_literal_to_level(int level, int *linenum)
                         curlvl++;
                 }
                 if (curlvl <= level) {
-                        rewindchr(curlvl);
+                        // rewind blanks and lf
+                        rewindchr(curlvl + 1);
                         cur = forward;
                         break;
                 }
@@ -172,6 +173,13 @@ char *get_literal_to_level(int level, int *linenum)
                 (*linenum)++;
 
                 // eat indent
+                if (curlvl < indent) {
+                        printf("[%d]\tSyntax error\n", __LINE__);
+                        // +1 for lf
+                        rewindchr(forward - cur + 1);
+                        cur = forward;
+                        break;
+                }
                 cur += indent;
 
                 int len = forward - cur;
@@ -184,8 +192,6 @@ char *get_literal_to_level(int level, int *linenum)
                 idx += len;
         }
 
-        // rewind lf
-        rewindchr(1);
 
         *(ret + idx + 1) = '\0';
         // int sz = forward - cur;
