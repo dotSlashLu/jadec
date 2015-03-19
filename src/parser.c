@@ -56,15 +56,16 @@ static void parsetok()
 {
         switch (tok->type) {
                 case tok_id:
+                case '#':
+                case '.':
+                case '(':
                         // doctype
                         if (strcmp(tok->data, "doctype") == 0) {
                                 new_node(tok->data);
                                 node_doctype();
                         }
-                        else {
+                        else
                                 node();
-                                // tok = gettok();
-                        }
                         break;
 
                 // literal
@@ -112,18 +113,31 @@ static void node()
         bt_nodeptr *_attr_list = attr_list;
 
         char *class = malloc(256), *id = malloc(256);
-        // node type
-        char *type = malloc(strlen(tok->data) + 1);
-        strcpy(type, tok->data);
+        char *literal = NULL, *type;
 
+        // node type
+        switch (tok->type) {
+                // no node type specified, default div
+                case '.':
+                case '#':
+                case '(':
+                        type = malloc(4);
+                        strcpy(type, "div");
+                        break;
+
+                default:
+                        type = malloc(strlen(tok->data) + 1);
+                        strcpy(type, tok->data);
+                        tok = gettok();
+                        break;
+        }
         // attrs
         do {
-                tok = gettok();
                 // printf("[%d]\ttok type: %d\n", __LINE__, tok->type);
                 switch (tok->type) {
                         // class
                         case '.':
-                                // class name
+                                // eat .
                                 tok = gettok();
                                 if (strlen(class) > 0) strcat(class, " ");
                                 strcat(class, tok->data);
@@ -133,6 +147,7 @@ static void node()
 
                         // id
                         case '#':
+                                // eat #
                                 tok = gettok();
                                 if (!bt_find(root, "id"))
                                         *attr_list++ = bt_install(root, "id", id);
@@ -149,15 +164,15 @@ only one id can be assigned.\n", __LINE__);
                                 break;
 
                         case tok_start_block: {
-                                char *literal = get_literal_to_level(_level, &line);
-                                printf("[%d]\tblock literal: %s\n", __LINE__, literal);
-                                free(literal);
+                                literal = get_literal_to_level(_level, &line);
+                                // printf("[%d]\tblock literal: %s\n", __LINE__, literal);
                                 break;
                         }
 
                         default:
                                 break;
                 }
+                tok = gettok();
         }
         while (tok->type != tok_delim &&        // begin literal
                 tok->type != tok_lf &&
@@ -168,23 +183,21 @@ only one id can be assigned.\n", __LINE__);
         // text node
         if (tok->type == '|' || tok->type == tok_delim) {
                 printf("[%d]\ttok type: %d, data: %d\n", __LINE__, tok->type, *(int *)tok->data);
-                char *literal = get_literal_to_lf();
+                literal = get_literal_to_lf();
                 printf("[%d]\tliteral: [%s]\n", __LINE__, literal);
-                free(literal);
         }
 
         new_node(type);
         fprintf(_output, "[%d]\t<%s \n", __LINE__, type);
-        // TODO
-        if (*attr_list) {
-                printf("[%d]\thas attr_list, first attr: %p\n", __LINE__, *attr_list);
-                *++attr_list = NULL;
-        }
+        if (*attr_list) *++attr_list = NULL;
         while (*_attr_list) {
                 printf("[%d]\t%s = \"%s\"\n", __LINE__, (*_attr_list)->key, (char *)(*_attr_list)->val);
                 _attr_list++;
         }
         printf("[%d]\t>\n", __LINE__);
+
+        if (literal) printf("[%d]\t%s\n", __LINE__, literal);
+        free(literal);
 
         bt_free(root);
         free(type);
@@ -198,8 +211,6 @@ static void node_attr_list(bt_nodeptr root, bt_nodeptr **_list)
         tok = gettok();
         while (tok->type != ')')
                 node_attr(root, &list);
-        // eat )
-        tok = gettok();
 }
 
 static void node_attr(bt_nodeptr root, bt_nodeptr **_list)

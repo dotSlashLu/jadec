@@ -8,8 +8,8 @@
 
 typedef struct pool {
         void *addr;
-        // cursor
-        off_t cur;
+        /* cursor */
+        long int cur;
         size_t size;
 } pool_t, *poolp;
 

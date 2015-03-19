@@ -8,7 +8,7 @@ typedef struct tok {
 
 enum {
         tok_id          = 256,
-        // \r?\n
+        /* \r?\n */
         tok_lf,
         tok_start_block,
         tok_delim,

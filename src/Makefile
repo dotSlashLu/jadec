@@ -6,7 +6,7 @@ config.h:
 	cd .. && $(MAKE) configure
 
 jadec.out: config.h
-	$(CC) $(CCFLAGS) $(TARGETS) -o jadec.out
+	$(CC) $(CCFLAGS) $(TARGETS) -o $@
 
 test: jadec.out
 	./jadec.out test.in

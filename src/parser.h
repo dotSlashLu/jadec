@@ -1,13 +1,13 @@
 #ifndef JADEC_PARSER_H
 #define JADEC_PARSER_H
 
-// node prop
+/* node prop */
 typedef struct domnode_prop {
         char *prop;
         char *val;
 } prop_t, *propp;
 
-// node
+/* node */
 typedef struct domnode {
         int depth;
         char *type;
