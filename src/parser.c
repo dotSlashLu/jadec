@@ -10,25 +10,25 @@
 #include "pool.h"
 #include "btree.h"
 
-// current line
+/* current line */
 static int line = 1;
-// current tok
+/* current tok */
 static tokp tok;
 static FILE *_output;
-// current level
+/* current level */
 static int _level = 0;
-// parent dom node
+/* parent dom node */
 static domnodep _prev_node = NULL;
 static domnodep _node = NULL;
 static poolp _node_pool;
 
-// get doctype string from type
+/* get doctype string from type */
 static const char *doctypestr(char *);
-// doctype node
+/* doctype node */
 static void node_doctype();
 static void node();
 static void delim(tokp);
-static void parsetok();
+static inline void parsetok();
 static void close_node(domnodep node);
 static domnodep new_node(char *type);
 static void node_attr_list(bt_nodeptr attr_tree_root, bt_nodeptr **attr_list);
@@ -52,14 +52,17 @@ void parse(char *in, long fsize, FILE *output)
         lexer_free();
 }
 
-static void parsetok()
+static inline void parsetok()
 {
         switch (tok->type) {
                 case tok_id:
                 case '#':
                 case '.':
-                case '(':
-                        // doctype
+                /*
+                 * jade don't allow attr list to start a div
+                 **/
+                /* case '(': */
+                        /* doctype */
                         if (strcmp(tok->data, "doctype") == 0) {
                                 new_node(tok->data);
                                 node_doctype();
@@ -68,7 +71,7 @@ static void parsetok()
                                 node();
                         break;
 
-                // literal
+                /* literal */
                 case '|':
                         tok = gettok();
                         char *literal = get_literal_to_lf();
@@ -79,7 +82,6 @@ static void parsetok()
                         line++;
                         _level = 0;
                         tok = gettok();
-                        // printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
                         break;
 
                 case tok_delim:
@@ -93,7 +95,7 @@ static void parsetok()
                         break;
 
                 default:
-                        printf("[%d]\tUnimplemented tok: %d, data: %s\n",
+                        printf("[%d]\tUnimplemented token: %c, data: %s\n",
                         __LINE__, tok->type, (char *)tok->data);
                         exit(1);
                         break;
@@ -102,8 +104,6 @@ static void parsetok()
 
 static void node()
 {
-        // printf("[%d]\tNew dom node, type %s at level %d\n",
-        // __LINE__, (char *)tok->data, _level);
         bt_nodeptr root = bt_init();
 
         // an array of btree node
@@ -112,7 +112,7 @@ static void node()
         bt_nodeptr *attr_list = calloc(1, sizeof(bt_nodeptr) * JADEC_MAX_PROP);
         bt_nodeptr *_attr_list = attr_list;
 
-        char *class = malloc(256), *id = malloc(256);
+        char *class = calloc(1, 256), *id = calloc(1, 256);
         char *literal = NULL, *type;
 
         // node type
@@ -143,6 +143,7 @@ static void node()
                                 strcat(class, tok->data);
                                 if (!bt_find(root, "class"))
                                         *attr_list++ = bt_install(root, "class", class);
+                                tok = gettok();
                                 break;
 
                         // id
@@ -156,35 +157,32 @@ static void node()
                                 else
                                         printf("[%d]Syntax error: \
 only one id can be assigned.\n", __LINE__);
+                                tok = gettok();
                                 break;
 
                         // attr list
                         case '(':
                                 node_attr_list(root, &attr_list);
+                                tok = gettok();
                                 break;
 
                         case tok_start_block: {
                                 literal = get_literal_to_level(_level, &line);
+                                tok = gettok();
                                 // printf("[%d]\tblock literal: %s\n", __LINE__, literal);
                                 break;
                         }
-
-                        default:
-                                break;
                 }
-                tok = gettok();
         }
-        while (tok->type != tok_delim &&        // begin literal
+        while (tok->type != tok_delim &&        /* begin literal */
                 tok->type != tok_lf &&
-                tok->type != '|' &&             // begin text node
-                tok->type != tok_eof);          // eof
+                tok->type != '|' &&             /* begin text node */
+                tok->type != tok_eof);          /* eof */
 
-        // printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
-        // text node
+        /* text node */
         if (tok->type == '|' || tok->type == tok_delim) {
-                printf("[%d]\ttok type: %d, data: %d\n", __LINE__, tok->type, *(int *)tok->data);
                 literal = get_literal_to_lf();
-                printf("[%d]\tliteral: [%s]\n", __LINE__, literal);
+                printf("[%d]\%s\n", __LINE__, literal);
         }
 
         new_node(type);
