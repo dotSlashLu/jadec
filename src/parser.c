@@ -43,7 +43,7 @@ void parse(char *in, long fsize, FILE *output)
         tok = gettok();
         while (tok && tok->type != tok_eof) {
                 parsetok();
-                jadec_pool_release(0);
+                lexer_pool_rewind(0);
         }
         printf("\n[%d]\t---EOF---\n", __LINE__);
 
@@ -182,7 +182,7 @@ only one id can be assigned.\n", __LINE__);
         /* text node */
         if (tok->type == '|' || tok->type == tok_delim) {
                 literal = get_literal_to_lf();
-                printf("[%d]\%s\n", __LINE__, literal);
+                printf("[%d]\t%s\n", __LINE__, literal);
         }
 
         new_node(type);
@@ -194,7 +194,7 @@ only one id can be assigned.\n", __LINE__);
         }
         printf("[%d]\t>\n", __LINE__);
 
-        if (literal) printf("[%d]\t%s\n", __LINE__, literal);
+        // if (literal) printf("[%d]\t%s\n", __LINE__, literal);
         free(literal);
 
         bt_free(root);
@@ -406,8 +406,10 @@ static domnodep new_node(char *type)
         strcpy(ret->type, type);
         *(ret->type + strlen(type) + 1) = '\0';
 
-        // if new node's level is lte than the prev node
-        // close any prev node that isn't closed
+        /*
+         * if new node's level is lte than the prev node
+         * close any prev node that isn't closed
+         */
         _prev = _prev_node;
         while (_prev && _level <= _prev->depth) {
                 close_node(_prev);
@@ -416,8 +418,8 @@ static domnodep new_node(char *type)
                 // __LINE__, _prev, _prev->depth, _level, _level <= _prev->depth);
         }
 
-        printf("[%d]\tnew node(%p) - type: %s, depth: %d, closed: %d, parent: %p, prev: %p\n",
-        __LINE__, ret, ret->type, ret->depth, ret->closed, ret->parent, _prev_node);
+        // printf("[%d]\tnew node(%p) - type: %s, depth: %d, closed: %d, parent: %p, prev: %p\n",
+        // __LINE__, ret, ret->type, ret->depth, ret->closed, ret->parent, _prev_node);
         if (!_prev_node) _prev_node = ret;
         return ret;
 }

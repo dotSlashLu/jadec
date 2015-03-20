@@ -2,7 +2,7 @@
 #include "pool.h"
 #include "jadec.h"
 
-poolp pool_create(size_t s)
+poolp pool_create(unsigned int s)
 {
         poolp pool = calloc(1, sizeof(pool_t));
         pool->addr = malloc(s);
@@ -12,7 +12,7 @@ poolp pool_create(size_t s)
         return pool;
 }
 
-void *pool_alloc(poolp pool, size_t s)
+void *pool_alloc(poolp pool, unsigned int s)
 {
         if (pool->cur + s >= pool->size) {
                 pool->addr = realloc(pool->addr,
@@ -25,7 +25,7 @@ void *pool_alloc(poolp pool, size_t s)
         return ret;
 }
 
-void pool_rewind(poolp pool, long pos)
+void pool_rewind(poolp pool, unsigned int pos)
 {
         pool->cur = pos;
 }

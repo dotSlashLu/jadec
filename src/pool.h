@@ -10,12 +10,12 @@ typedef struct pool {
         void *addr;
         /* cursor */
         long int cur;
-        size_t size;
+        unsigned int size;
 } pool_t, *poolp;
 
-poolp pool_create();
-void *pool_alloc(poolp, size_t s);
-void pool_rewind(poolp, long pos);
+poolp pool_create(unsigned int s);
+void *pool_alloc(poolp, unsigned int s);
+void pool_rewind(poolp, unsigned int pos);
 void pool_release(poolp);
 
 #endif

@@ -5,6 +5,7 @@
 
 #include "jadec.h"
 #include "lexer.h"
+#include "pool.h"
 
 static long _fsize;
 static short u8seq_len;
@@ -17,38 +18,7 @@ static tokp tok;
 static inline char getchr();
 static inline unsigned short advance();
 static char *_get_literal_to_lf();
-
-
-void *jadec_pool;
-static size_t pool_size = JADEC_POOL_SIZE;
-static int pool_cur = 0;
-static void *pool_init()
-{
-        jadec_pool = malloc(JADEC_POOL_SIZE);
-        if (!jadec_pool) {
-                perror("malloc");
-                exit(1);
-        }
-        return jadec_pool;
-}
-
-static void *pool_alloc(size_t s)
-{
-        if (pool_cur + s >= pool_size) {
-                jadec_pool = realloc(jadec_pool, pool_size + JADEC_POOL_SIZE);
-                pool_size += JADEC_POOL_SIZE;
-        }
-
-        void *ret = jadec_pool + pool_cur;
-        pool_cur += s;
-        return ret;
-}
-
-// reset cursor for reuse of memory
-void jadec_pool_release(int i)
-{
-        pool_cur = i;
-}
+static void *lexer_pool;
 
 // advance input and return the read utf8 seq length
 static inline unsigned short advance()
@@ -99,12 +69,18 @@ void lexer_init(char *input, long fsize)
         _in = input;
         _fsize = fsize;
         cur = forward = input;
-        pool_init();
+        lexer_pool = pool_create(JADEC_POOL_SIZE);
 }
 
-void lexer_free(FILE *input)
+// rewind lexer pool
+void lexer_pool_rewind(unsigned int pos)
 {
-        free(jadec_pool);
+        pool_rewind(lexer_pool, pos);
+}
+
+void lexer_free()
+{
+        pool_release(lexer_pool);
 }
 
 char *get_literal_to_lf()
@@ -259,7 +235,7 @@ tokp gettok()
                 while ((u8seq_len == 1 && isalnum(*forward)) ||
                         u8seq_len > 1);
                 int idlen = forward - cur;
-                char *idstr = pool_alloc(idlen + 1);
+                char *idstr = pool_alloc(lexer_pool, idlen + 1);
                 strncpy(idstr, cur, idlen);
                 *(idstr + idlen) = '\0';
 
@@ -273,7 +249,7 @@ tokp gettok()
         // [ \t]
         else if (isblank(*forward)) {
                 // printf("[%d]\tblank\n", __LINE__);
-                int *i = pool_alloc(sizeof(int));
+                int *i = pool_alloc(lexer_pool, sizeof(int));
                 *i = 0;
                 do {
                         (*i)++;
