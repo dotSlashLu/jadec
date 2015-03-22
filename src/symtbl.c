@@ -9,7 +9,7 @@ static void _st_free_root(symtbl root);
 
 symtbl st_createScope(symtbl parent)
 {
-        nodeptr scope = bt_init();
+        bt_nodeptr scope = bt_init();
         symtbl env = calloc(1, sizeof(symtbl_t));
         env->scope = scope;
         env->parent = parent;
@@ -26,15 +26,15 @@ symtbl st_createScope(symtbl parent)
 
 symtbl st_put(symtbl to, char *key, void *data)
 {
-        nodeptr scope = to->scope;
+        bt_nodeptr scope = to->scope;
         bt_install(scope, key, data);
         return to;
 }
 
-nodeptr st_search(symtbl from, char *key)
+bt_nodeptr st_search(symtbl from, char *key)
 {
-        nodeptr scope;
-        nodeptr result;
+        bt_nodeptr scope;
+        bt_nodeptr result;
         while ((scope = from->scope) != NULL) {
                 result = bt_find(scope, key);
                 if (result != NULL) return result;

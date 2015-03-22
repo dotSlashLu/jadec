@@ -36,7 +36,7 @@ void parsefile(const char *filename, FILE *output)
                 exit(1);
         }
 
-        // get file size
+        /* get file size */
         struct stat st;
         fstat(fd, &st);
         off_t fsize = (long)st.st_size;

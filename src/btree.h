@@ -12,7 +12,7 @@ typedef struct node {
 bt_nodeptr bt_init();
 bt_nodeptr bt_install(bt_nodeptr root, char *key, void *val);
 bt_nodeptr bt_find(bt_nodeptr from, char *key);
-void    bt_free(bt_nodeptr root);
+void bt_free(bt_nodeptr root);
 unsigned long bt_hash(char *str);
 
 #endif

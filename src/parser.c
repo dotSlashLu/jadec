@@ -106,18 +106,20 @@ static void node()
 {
         bt_nodeptr root = bt_init();
 
-        // an array of btree node
-        // btree for checking uniqueness
-        // list for output and memory deallocation
+        /*
+        * an array of btree node
+        * btree for checking uniqueness
+        * list for output and memory deallocation
+        */
         bt_nodeptr *attr_list = calloc(1, sizeof(bt_nodeptr) * JADEC_MAX_PROP);
         bt_nodeptr *_attr_list = attr_list;
 
         char *class = calloc(1, 256), *id = calloc(1, 256);
         char *literal = NULL, *type;
 
-        // node type
+        /* node type */
         switch (tok->type) {
-                // no node type specified, default div
+                /* no node type specified, default div */
                 case '.':
                 case '#':
                 case '(':
@@ -131,13 +133,13 @@ static void node()
                         tok = gettok();
                         break;
         }
-        // attrs
+        /* node attrs */
         do {
                 // printf("[%d]\ttok type: %d\n", __LINE__, tok->type);
                 switch (tok->type) {
-                        // class
+                        /* class */
                         case '.':
-                                // eat .
+                                /* eat . */
                                 tok = gettok();
                                 if (strlen(class) > 0) strcat(class, " ");
                                 strcat(class, tok->data);
@@ -146,9 +148,9 @@ static void node()
                                 tok = gettok();
                                 break;
 
-                        // id
+                        /* id */
                         case '#':
-                                // eat #
+                                /* eat # */
                                 tok = gettok();
                                 if (!bt_find(root, "id"))
                                         *attr_list++ = bt_install(root, "id", id);
@@ -160,7 +162,7 @@ only one id can be assigned.\n", __LINE__);
                                 tok = gettok();
                                 break;
 
-                        // attr list
+                        /* attr list */
                         case '(':
                                 node_attr_list(root, &attr_list);
                                 tok = gettok();
@@ -217,30 +219,29 @@ static void node_attr(bt_nodeptr root, bt_nodeptr **_list)
         char *attr = malloc(strlen(tok->data) + 1);
         strcpy(attr, tok->data);
 
-/*
-        switch (tok->type) { // attr name
-                case tok_id:
-*/
-        tok = gettok(); // "=" | new attr
-        // printf("[%d]\ttok type: %d, data: %s\n", __LINE__, tok->type, (char *)tok->data);
+        tok = gettok();
         skip_blanks();
 
 
-        // =, attr val
+        /* =, attr val */
         if (tok->type == '=') {
                 tok = gettok();
                 skip_blanks();
                 if (tok->type == '"' || tok->type == '\'') {
                         char *val = get_quoted_literal(tok->type);
                         bt_nodeptr attrnode;
-                        // new attr,
-                        // install in the btree and record in the list
+                        /*
+                        * new attr,
+                        * install in the btree and record in the list
+                        */
                         if (!(attrnode = bt_find(root, attr))) {
                                 *list++ = bt_install(root, attr, val);
                                 // printf("[%d]\tattr installed to list: (%p)%s -> %s\n", __LINE__, list - 1, (*(list - 1))->key, (char *)(*(list - 1))->val);
                         }
-                        // non-id attr exists,
-                        // chain the val to the old one
+                        /*
+                        *  non-id attr exists,
+                        *  chain the val to the old one
+                        */
                         else if (strcmp(attr, "id") || (strlen(attrnode->val) == 0)) {
                                 char *oldval = attrnode->val;
                                 if (strlen(oldval) > 0)
@@ -248,7 +249,7 @@ static void node_attr(bt_nodeptr root, bt_nodeptr **_list)
                                 strcat(oldval, val);
                                 bt_install(root, attr, oldval);
                         }
-                        // multiple id, report for syntax error
+                        /* multiple id, report syntax error */
                         else
                                 printf("[%d]\tSyntax error: multiple id\n", __LINE__);
                         tok = gettok();
@@ -278,20 +279,11 @@ static void node_attr(bt_nodeptr root, bt_nodeptr **_list)
                 }
         }
 
-        // id, another attr
+        /* id, another attr */
         else if (tok->type == tok_id) {
                 printf("[%d]\ttok_id\n", __LINE__);
                 *(list++) = bt_install(root, attr, attr);
         }
-
-        // *++list = NULL;
-/*
-                        break;
-                default:
-                        printf("[%d]\ttok type: %d data: %s\n", __LINE__, tok->type, (char *)tok->data);
-                        break;
-        }
-*/
 }
 
 static inline void skip_blanks()
@@ -313,7 +305,7 @@ static void node_doctype()
         doctype_type_tok->type = tok->type;
         doctype_type_tok->data = tok->data;
 
-        // no type: doctype$
+        /* no type: doctype$ */
         if (doctype_space_tok->type != tok_delim ||
                 doctype_type_tok->type == tok_lf ||
                 doctype_type_tok->type == tok_eof) {
@@ -336,10 +328,8 @@ static void node_doctype()
                 tok_free(doctype_space_tok);
                 tok_free(doctype_type_tok);
                 do {
-                        if (tok->type == tok_id) {
+                        if (tok->type == tok_id)
                                 fprintf(_output, "%s", (char *)tok->data);
-                                // free(tok->data);
-                        }
 
                         else if (tok->type == tok_lf ||
                                 tok->type == tok_eof) {
@@ -353,14 +343,12 @@ static void node_doctype()
                         else
                                 fprintf(_output, "%c", (char)tok->type);
 
-                        // tok_free(tok);
                 } while ((tok = gettok()));
                 fprintf(_output, ">\n");
-                // tok_free(tok);
                 return;
         }
 
-        // got a type
+        /* got a type */
         const char *d = doctypestr(doctype_type_tok->data);
         if (d == NULL)
                 fprintf(_output, "<!DOCTYPE %s>\n", (char *)doctype_type_tok->data);
@@ -374,12 +362,11 @@ static domnodep new_node(char *type)
 {
         domnodep ret = pool_alloc(_node_pool, sizeof(domnode_t));
         if (_prev_node) _prev_node = _node;
-        // else _prev_node = ret;
         _node = ret;
         domnodep _prev = _prev_node;
 
         ret->depth = _level;
-        // find parent
+        /* find parent */
         if (_prev) {
                 if (_prev->depth < _level) ret->parent = _prev;
                 else if (_prev->depth == _level) ret->parent = _prev->parent;
@@ -388,7 +375,7 @@ static domnodep new_node(char *type)
                                 _prev = _prev->parent;
         }
 
-        // test for self closing tags
+        /* test for self closing tags */
 #define cmp(str)(!strcmp(str, type))
         if (cmp("doctype") || cmp("br") || cmp("img") ||
                 cmp("input") || cmp("area") || cmp("col") ||

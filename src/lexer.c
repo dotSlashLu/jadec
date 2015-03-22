@@ -11,7 +11,7 @@ static long _fsize;
 static short u8seq_len;
 static char *cur = NULL, *forward = NULL;
 static char *_in;
-// current utf8 seq
+/* current utf8 sequence */
 static char *u8seq;
 
 static tokp tok;
@@ -20,7 +20,7 @@ static inline unsigned short advance();
 static char *_get_literal_to_lf();
 static void *lexer_pool;
 
-// advance input and return the read utf8 seq length
+/* advance input and return the read utf8 seq length */
 static inline unsigned short advance()
 {
         u8seq = forward;
@@ -33,7 +33,7 @@ static inline unsigned short advance()
         }
 
         i = 0;
-        // utf8 first byte patter mask: 192 224 240
+        /* utf8 first byte patter mask: 192 224 240 */
         if ((c & 192) == 192) i++;
         if ((c & 224) == 224) i++;
         if ((c & 240) == 240) i++;
@@ -48,7 +48,7 @@ static inline unsigned short advance()
         return i + 1;
 }
 
-// test EOF and get next char
+/* test EOF and get next char */
 static inline char getchr()
 {
         if (_fsize < 1) return EOF;
@@ -97,13 +97,13 @@ char *get_literal_to_lf()
 static char *_get_literal_to_lf()
 {
         while ((*forward != '\r' && getchr() != '\n') || *forward != '\n') {
-                // multibyte
+                /* multibyte */
                 if (u8seq_len > 1) {
                         advance();
                         continue;
                 }
 
-                // lf, break
+                /* lf, break */
                 if (*forward == '\r') {
                         advance();
                         if (*forward == '\n') {
@@ -134,7 +134,7 @@ char *get_literal_to_level(int level, int *linenum)
                         curlvl++;
                 }
                 if (curlvl <= level) {
-                        // rewind blanks and lf
+                        /* rewind blanks and lf */
                         rewindchr(curlvl + 1);
                         cur = forward;
                         break;
@@ -143,15 +143,15 @@ char *get_literal_to_level(int level, int *linenum)
                 if (indent == 0) indent = curlvl;
                 _get_literal_to_lf();
 
-                // eat lf
+                /* eat lf */
                 if (*forward == '\r') getchr();
                 getchr();
                 (*linenum)++;
 
-                // eat indent
+                /* eat indent */
                 if (curlvl < indent) {
                         printf("[%d]\tSyntax error\n", __LINE__);
-                        // +1 for lf
+                        /* +1 for lf */
                         rewindchr(forward - cur + 1);
                         cur = forward;
                         break;
@@ -170,13 +170,6 @@ char *get_literal_to_level(int level, int *linenum)
 
 
         *(ret + idx + 1) = '\0';
-        // int sz = forward - cur;
-        // char *ret = malloc(sz + 1);
-        // // printf("[%d]\tto lvl: %d, sz: %d, dest: %p\n", __LINE__, level, sz, ret);
-        // if (!ret) return NULL;
-        // strncpy(ret, cur, sz);
-        // cur = forward;
-        // *(ret + sz) = '\0';
         return ret;
 }
 
@@ -218,7 +211,7 @@ char *get_quoted_literal(char quote)
         }
 
         *(ret + i + 1) = '\0';
-        // eat ending "
+        /* eat ending " */
         getchr();
         cur = forward;
         return ret;
@@ -227,8 +220,7 @@ char *get_quoted_literal(char quote)
 
 tokp gettok()
 {
-        // printf("\n\n\n---gettok---\n");
-        // id
+        /* id */
         if (u8seq_len > 1 || isalnum(*forward)) {
                 // printf("[%d]\tid\n", __LINE__);
                 do advance();
@@ -246,7 +238,7 @@ tokp gettok()
                 // rewindchr(1);
         }
 
-        // [ \t]
+        /* [ \t] */
         else if (isblank(*forward)) {
                 // printf("[%d]\tblank\n", __LINE__);
                 int *i = pool_alloc(lexer_pool, sizeof(int));
@@ -261,16 +253,16 @@ tokp gettok()
                 tok->data = i;
         }
 
-        // start block literal
+        /* start block literal */
         else if (*forward == '.') {
-                // unix
+                /* unix lf */
                 if (getchr() == '\n') {
                         tok->type = tok_start_block;
                         // eat \n
                         getchr();
                 }
 
-                // windows
+                /* windows lf */
                 else if (*forward == '\r') {
                         if (getchr() == '\n') {
                                 tok->type = tok_start_block;
@@ -289,7 +281,7 @@ tokp gettok()
                 cur = forward;
         }
 
-        // line feed
+        /* line feed */
         else if ((*forward == '\r' && getchr() == '\n') ||
                 *forward == '\n') {
                 // printf("[%d]\tlf\n", __LINE__);
@@ -298,7 +290,7 @@ tokp gettok()
                 cur = forward;
         }
 
-        // eof
+        /* eof */
         else if (_fsize < 1 ||
                 u8seq_len == -1 ||
                 *forward == EOF) {
