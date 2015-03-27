@@ -3,6 +3,7 @@ node.c1.c2#id(attr="attrVal")
         | textNode
         #abc(attr="val").
                 他にもいろんな漁が
+                >>?asdf<>
                 childNode2
         node
 closeChildAndNode

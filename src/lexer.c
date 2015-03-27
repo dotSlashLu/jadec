@@ -33,7 +33,7 @@ static inline unsigned short advance()
         }
 
         i = 0;
-        /* utf8 first byte patter mask: 192 224 240 */
+        /* utf8 first byte pattern mask: 192 224 240 */
         if ((c & 192) == 192) i++;
         if ((c & 224) == 224) i++;
         if ((c & 240) == 240) i++;

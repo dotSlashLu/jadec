@@ -34,6 +34,7 @@ static domnodep new_node(char *type);
 static void node_attr_list(bt_nodeptr attr_tree_root, bt_nodeptr **attr_list);
 static void node_attr(bt_nodeptr root, bt_nodeptr **_list);
 static inline void skip_blanks();
+static char *escape_html_entity(const char *src);
 
 void parse(char *in, long fsize, FILE *output)
 {
@@ -100,6 +101,61 @@ static inline void parsetok()
                         exit(1);
                         break;
         }
+}
+
+static char *escape_html_entity(const char *src)
+{
+        printf("[%d]\tescaping %s\n", __LINE__, src);
+        int srclen = strlen(src) + 1;
+        int len = srclen * 1.1, i = 0, l = 0;
+        char *dest = malloc(len);
+#define cpy(s) { \
+        printf("cpy %s, l %d\n", s, l);  \
+        if (i + l > len) { \
+                printf("[%d]\trealloc\n", __LINE__);    \
+                dest = realloc(dest, len + len / 2);    \
+                len += len / 2; \
+        } \
+        int k = l; printf("k: %d\n", k);\
+        while (k--) { \
+                printf("i: %d\n", i);   \
+                *(dest + i) = *(s + i); \
+                i++; \
+        } \
+}
+        while (*src) {
+                /* utf8 sequence */
+                l = 0;
+                if ((*src & 0xC0) == 0xC0) l++;
+                if ((*src & 0xE0) == 0xE0) l++;
+                if ((*src & 0xF0) == 0xF0) l++;
+                printf("[%d]\tl: %d\n", __LINE__, l);
+                if (l > 1) {
+                        printf("[%d]\tu8l: %d\n", __LINE__, l);
+                        cpy(src);
+                        src += l;
+                        printf("[%d]\tsrc: %s\n", __LINE__, src);
+                        continue;
+                }
+                /* ascii */
+                switch (*src) {
+                        case '<':
+                                l = 4;
+                                cpy("&lt;");
+                                break;
+                        case '>':
+                                l = 4;
+                                cpy("&gt;");
+                                break;
+                        default:
+                                l = 1;
+                                cpy(src);
+                                break;
+                }
+                src += 1;
+        }
+        return dest;
+#undef cpy
 }
 
 static void node()
@@ -169,9 +225,11 @@ only one id can be assigned.\n", __LINE__);
                                 break;
 
                         case tok_start_block: {
-                                literal = get_literal_to_level(_level, &line);
+                                char *raw_literal = get_literal_to_level(_level, &line);
+                                literal = escape_html_entity(raw_literal);
+                                free(raw_literal);
                                 tok = gettok();
-                                // printf("[%d]\tblock literal: %s\n", __LINE__, literal);
+                                printf("[%d]\tblock literal: %s\n", __LINE__, literal);
                                 break;
                         }
                 }
