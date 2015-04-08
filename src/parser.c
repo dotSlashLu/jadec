@@ -103,52 +103,64 @@ static inline void parsetok()
         }
 }
 
+/*
+static inline void escape_cpy(char *src, char *dest, int srclen, int *destlen)
+{
+        static int i = 0;
+        printf("cpy %s, l %d\n", src, srclen);
+        if (i + srclen > *destlen) {
+                printf("[%d]\trealloc\n", __LINE__);
+                dest = realloc(dest, *destlen + *destlen / 2);
+                *destlen += *destlen / 2;
+        }
+        printf("[%d]\ti: %d\n", __LINE__, i);
+        strncpy(dest + i, src, srclen);
+        i += srclen;
+}
+*/
+
 static char *escape_html_entity(const char *src)
 {
         printf("[%d]\tescaping %s\n", __LINE__, src);
         int srclen = strlen(src) + 1;
-        int len = srclen * 1.1, i = 0, l = 0;
+        int len = srclen * 1.3;
+        int i = 0;
+        int cpylen = 0;
         char *dest = malloc(len);
-#define cpy(s) { \
-        printf("cpy %s, l %d\n", s, l);  \
-        if (i + l > len) { \
-                printf("[%d]\trealloc\n", __LINE__);    \
-                dest = realloc(dest, len + len / 2);    \
+#define cpy(src) { \
+        printf("cpy %s, l %d\n", src, cpylen); \
+        if (i + cpylen > len) { \
+                printf("[%d]\trealloc\n", __LINE__); \
+                dest = realloc(dest, len + len / 2); \
                 len += len / 2; \
         } \
-        int k = l; printf("k: %d\n", k);\
-        while (k--) { \
-                printf("i: %d\n", i);   \
-                *(dest + i) = *(s + i); \
-                i++; \
-        } \
+        strncpy(dest + i, src, cpylen); \
+        i += cpylen; \
 }
         while (*src) {
+                cpylen = 0;
+
                 /* utf8 sequence */
-                l = 0;
-                if ((*src & 0xC0) == 0xC0) l++;
-                if ((*src & 0xE0) == 0xE0) l++;
-                if ((*src & 0xF0) == 0xF0) l++;
-                printf("[%d]\tl: %d\n", __LINE__, l);
-                if (l > 1) {
-                        printf("[%d]\tu8l: %d\n", __LINE__, l);
+                if ((*src & 0xC0) == 0xC0) cpylen++;
+                if ((*src & 0xE0) == 0xE0) cpylen++;
+                if ((*src & 0xF0) == 0xF0) cpylen++;
+                if (cpylen > 1) {
                         cpy(src);
-                        src += l;
-                        printf("[%d]\tsrc: %s\n", __LINE__, src);
+                        src += cpylen;
                         continue;
                 }
                 /* ascii */
                 switch (*src) {
                         case '<':
-                                l = 4;
+                                cpylen = 4;
                                 cpy("&lt;");
                                 break;
                         case '>':
-                                l = 4;
+                                cpylen = 4;
                                 cpy("&gt;");
                                 break;
                         default:
-                                l = 1;
+                                cpylen = 1;
                                 cpy(src);
                                 break;
                 }
