@@ -128,7 +128,6 @@ static char *escape_html_entity(const char *src)
         int cpylen = 0;
         char *dest = malloc(len);
 #define cpy(src) { \
-        printf("cpy %s, l %d\n", src, cpylen); \
         if (i + cpylen > len) { \
                 printf("[%d]\trealloc\n", __LINE__); \
                 dest = realloc(dest, len + len / 2); \
@@ -138,18 +137,6 @@ static char *escape_html_entity(const char *src)
         i += cpylen; \
 }
         while (*src) {
-                cpylen = 0;
-
-                /* utf8 sequence */
-                if ((*src & 0xC0) == 0xC0) cpylen++;
-                if ((*src & 0xE0) == 0xE0) cpylen++;
-                if ((*src & 0xF0) == 0xF0) cpylen++;
-                if (cpylen > 1) {
-                        cpy(src);
-                        src += cpylen;
-                        continue;
-                }
-                /* ascii */
                 switch (*src) {
                         case '<':
                                 cpylen = 4;
